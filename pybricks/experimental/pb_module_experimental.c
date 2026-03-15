@@ -30,29 +30,22 @@ static const float INV_TWO_PI_F = 0.1591549431f;
 // Internal Math Engines
 // -----------------------------------------------------------------------------
 
-// High-Precision Sine (5th-degree Minimax Polynomial)
-// This is the core engine for both sin and cos.
 static float fast_sin_internal(float theta) {
-    // Range reduction to [-PI, PI]
     float quot = theta * INV_TWO_PI_F;
     float x = theta - (float)((int)(quot + (quot > 0 ? 0.5f : -0.5f))) * TWO_PI_F;
 
-    // Symmetry reduction to [-PI/2, PI/2]
     if (x > HALF_PI_F) x = PI_F - x;
     else if (x < -HALF_PI_F) x = -PI_F - x;
 
-    // 5th-degree Minimax Polynomial
     float x2 = x * x;
     return x * (1.0f + x2 * (-0.1666665f + x2 * 0.0083322f));
 }
 
-// Atan2 using the 0.273 parabolic approximation (valid for |z| <= 1)
 static float fast_atan2_internal(float y, float x) {
     float ay = fabsf(y) + 1e-10f; 
     float ax = fabsf(x);
     float z, angle;
 
-    // Range reduction to ensure we stay on the stable part of the approximation
     if (ax >= ay) {
         z = y / ax;
         angle = (0.7853982f + 0.273f * (1.0f - fabsf(z))) * z;
@@ -71,21 +64,18 @@ static float fast_atan2_internal(float y, float x) {
 // MicroPython Functions
 // -----------------------------------------------------------------------------
 
-// pybricks.experimental.sin(radians)
 static mp_obj_t experimental_sin(mp_obj_t theta_in) {
     float theta = mp_obj_get_float(theta_in);
     return mp_obj_new_float_from_f(fast_sin_internal(theta));
 }
 static MP_DEFINE_CONST_FUN_OBJ_1(experimental_sin_obj, experimental_sin);
 
-// pybricks.experimental.cos(radians)
 static mp_obj_t experimental_cos(mp_obj_t theta_in) {
     float theta = mp_obj_get_float(theta_in);
     return mp_obj_new_float_from_f(fast_sin_internal(theta + HALF_PI_F));
 }
 static MP_DEFINE_CONST_FUN_OBJ_1(experimental_cos_obj, experimental_cos);
 
-// pybricks.experimental.atan2(y, x)
 static mp_obj_t experimental_atan2(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     PB_PARSE_ARGS_FUNCTION(n_args, pos_args, kw_args,
         PB_ARG_REQUIRED(y),
@@ -99,14 +89,49 @@ static mp_obj_t experimental_atan2(size_t n_args, const mp_obj_t *pos_args, mp_m
 static MP_DEFINE_CONST_FUN_OBJ_KW(experimental_atan2_obj, 2, experimental_atan2);
 
 // -----------------------------------------------------------------------------
+// New: Detailed Internal Benchmark
+// -----------------------------------------------------------------------------
+
+// Runs sin, cos, and atan2 inside a C loop to measure pure CPU performance
+// Returns a tuple: (total_time_ms, avg_ns_per_triple_op)
+static mp_obj_t experimental_benchmark_internal(mp_obj_t n_in) {
+    int32_t n = mp_obj_get_int(n_in);
+    volatile float result = 0.0f; 
+    
+    uint32_t start = mp_hal_ticks_ms();
+    
+    for (int32_t i = 0; i < n; i++) {
+        // We use the internal engines directly to bypass ANY MicroPython overhead
+        result += fast_sin_internal(1.23f);
+        result += fast_sin_internal(1.23f + HALF_PI_F); // Cos
+        result += fast_atan2_internal(1.23f, 1.23f);
+    }
+    
+    uint32_t end = mp_hal_ticks_ms();
+    uint32_t total_ms = end - start;
+    
+    // Calculate nanoseconds per loop (1ms = 1,000,000ns)
+    // Avoid division by zero
+    float ns_per_op = (n > 0) ? ((float)total_ms * 1000000.0f) / n : 0;
+
+    mp_obj_t tuple[2];
+    tuple[0] = mp_obj_new_int(total_ms);
+    tuple[1] = mp_obj_new_float(ns_per_op);
+    
+    return mp_obj_new_tuple(2, tuple);
+}
+static MP_DEFINE_CONST_FUN_OBJ_1(experimental_benchmark_internal_obj, experimental_benchmark_internal);
+
+// -----------------------------------------------------------------------------
 // Module Registry
 // -----------------------------------------------------------------------------
 
 static const mp_rom_map_elem_t experimental_globals_table[] = {
-    { MP_ROM_QSTR(MP_QSTR___name__),    MP_ROM_QSTR(MP_QSTR_experimental) },
-    { MP_ROM_QSTR(MP_QSTR_sin),         MP_ROM_PTR(&experimental_sin_obj) },
-    { MP_ROM_QSTR(MP_QSTR_cos),         MP_ROM_PTR(&experimental_cos_obj) },
-    { MP_ROM_QSTR(MP_QSTR_atan2),       MP_ROM_PTR(&experimental_atan2_obj) },
+    { MP_ROM_QSTR(MP_QSTR___name__),           MP_ROM_QSTR(MP_QSTR_experimental) },
+    { MP_ROM_QSTR(MP_QSTR_sin),                MP_ROM_PTR(&experimental_sin_obj) },
+    { MP_ROM_QSTR(MP_QSTR_cos),                MP_ROM_PTR(&experimental_cos_obj) },
+    { MP_ROM_QSTR(MP_QSTR_atan2),              MP_ROM_PTR(&experimental_atan2_obj) },
+    { MP_ROM_QSTR(MP_QSTR_benchmark_internal), MP_ROM_PTR(&experimental_benchmark_internal_obj) },
 };
 static MP_DEFINE_CONST_DICT(pb_module_experimental_globals, experimental_globals_table);
 
