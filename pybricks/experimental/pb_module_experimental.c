@@ -28,16 +28,15 @@ static inline float fast_sin_poly(float x) {
 
 static inline float fast_sin_internal(float theta) {
     // 1. Range Reduction to [-PI, PI]
-    // Use roundf for branchless centering
-    float x = theta - roundf(theta * INV_TWO_PI_F) * TWO_PI_F;
+    // Manual round implementation to avoid undefined 'roundf' in some libm builds
+    float quot = theta * INV_TWO_PI_F;
+    float x = theta - (float)((int)(quot + (quot > 0 ? 0.5f : -0.5f))) * TWO_PI_F;
 
     // 2. Branchless Symmetry Reduction to [-PI/2, PI/2]
-    // Ternary operators here are mapped to conditional move instructions (VSEL)
-    // which prevents CPU pipeline stalls.
     float x_abs = fabsf(x);
     float x_folded = (x_abs > HALF_PI_F) ? PI_F - x_abs : x_abs;
     
-    // Restore sign
+    // Restore sign branchlessly
     float result_x = (x < 0.0f) ? -x_folded : x_folded;
 
     return fast_sin_poly(result_x);
@@ -47,14 +46,14 @@ static inline float fast_atan2_internal(float y, float x) {
     float ay = fabsf(y) + 1e-10f; 
     float ax = fabsf(x);
     
-    // Determine which axis is dominant without standard branching
+    // Determine which axis is dominant
     float z = (ax >= ay) ? y / ax : x / ay;
     float abs_z = fabsf(z);
     
     // Parabolic approximation for atan(z)
     float angle = (0.7853982f + 0.273f * (1.0f - abs_z)) * z;
 
-    // Quadrant adjustment (mapped to VSEL)
+    // Quadrant adjustment
     angle = (ax < ay) ? 1.5707963f - angle : angle;
 
     if (x < 0.0f) {
