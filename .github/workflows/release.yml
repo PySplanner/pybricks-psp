@@ -1,10 +1,7 @@
-on:
-  push:
-    tags:
-    - 'v3.*'
-    - 'v4.*'
+# This workflow is disabled. Releases are now handled by release-changelog.yml.
+on: workflow_dispatch
 
-name: Upload Release Assets
+name: Upload Release Assets (Disabled)
 
 env:
   MAKEOPTS: -j
