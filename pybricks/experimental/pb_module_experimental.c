@@ -10,39 +10,53 @@
 #include "py/runtime.h"
 #include <math.h>
 
+// Hardcoded constants for 98MHz register-speed access
 static const float PI_F         = 3.1415926535f;
 static const float TWO_PI_F     = 6.2831853071f;
 static const float HALF_PI_F    = 1.5707963267f;
 static const float INV_TWO_PI_F = 0.1591549431f;
 
 // -----------------------------------------------------------------------------
-// Internal Engines (Inlined)
+// Core Math Engines (Optimized for ARM VSEL/VCMPE instructions)
 // -----------------------------------------------------------------------------
 
 static inline float fast_sin_poly(float x) {
     float x2 = x * x;
+    // Horner's Method: 3 muls, 2 adds
     return x * (1.0f + x2 * (-0.1666665f + x2 * 0.0083322f));
 }
 
 static inline float fast_sin_internal(float theta) {
-    float quot = theta * INV_TWO_PI_F;
-    float x = theta - (float)((int)(quot + (quot > 0 ? 0.5f : -0.5f))) * TWO_PI_F;
-    if (x > HALF_PI_F) { x = PI_F - x; }
-    else if (x < -HALF_PI_F) { x = -PI_F - x; }
-    return fast_sin_poly(x);
+    // 1. Range Reduction to [-PI, PI]
+    // Use roundf for branchless centering
+    float x = theta - roundf(theta * INV_TWO_PI_F) * TWO_PI_F;
+
+    // 2. Branchless Symmetry Reduction to [-PI/2, PI/2]
+    // Ternary operators here are mapped to conditional move instructions (VSEL)
+    // which prevents CPU pipeline stalls.
+    float x_abs = fabsf(x);
+    float x_folded = (x_abs > HALF_PI_F) ? PI_F - x_abs : x_abs;
+    
+    // Restore sign
+    float result_x = (x < 0.0f) ? -x_folded : x_folded;
+
+    return fast_sin_poly(result_x);
 }
 
 static inline float fast_atan2_internal(float y, float x) {
     float ay = fabsf(y) + 1e-10f; 
     float ax = fabsf(x);
-    float z, angle;
-    if (ax >= ay) {
-        z = y / ax;
-        angle = (0.7853982f + 0.273f * (1.0f - fabsf(z))) * z;
-    } else {
-        z = x / ay;
-        angle = 1.5707963f - (0.7853982f + 0.273f * (1.0f - fabsf(z))) * z;
-    }
+    
+    // Determine which axis is dominant without standard branching
+    float z = (ax >= ay) ? y / ax : x / ay;
+    float abs_z = fabsf(z);
+    
+    // Parabolic approximation for atan(z)
+    float angle = (0.7853982f + 0.273f * (1.0f - abs_z)) * z;
+
+    // Quadrant adjustment (mapped to VSEL)
+    angle = (ax < ay) ? 1.5707963f - angle : angle;
+
     if (x < 0.0f) {
         angle += (y >= 0.0f) ? PI_F : -PI_F;
     }
@@ -69,7 +83,7 @@ static mp_obj_t experimental_atan2(mp_obj_t y_in, mp_obj_t x_in) {
 static MP_DEFINE_CONST_FUN_OBJ_2(experimental_atan2_obj, experimental_atan2);
 
 // -----------------------------------------------------------------------------
-// Detailed Internal Benchmark (Defeats Compiler Shortcuts)
+// Anti-Optimization Benchmark
 // -----------------------------------------------------------------------------
 
 static mp_obj_t experimental_benchmark_detailed(mp_obj_t n_in) {
@@ -80,7 +94,6 @@ static mp_obj_t experimental_benchmark_detailed(mp_obj_t n_in) {
     
     t0 = mp_hal_ticks_ms();
     for (int32_t i = 0; i < n; i++) {
-        // Varying input prevents the compiler from pre-calculating
         result += fast_sin_internal((float)i * inv_n);
     }
     
@@ -91,7 +104,6 @@ static mp_obj_t experimental_benchmark_detailed(mp_obj_t n_in) {
 
     t2 = mp_hal_ticks_ms();
     for (int32_t i = 0; i < n; i++) {
-        // Changing y and x forces different branches in atan2
         result += fast_atan2_internal((float)i, (float)(n - i));
     }
     t3 = mp_hal_ticks_ms();
@@ -105,6 +117,10 @@ static mp_obj_t experimental_benchmark_detailed(mp_obj_t n_in) {
     return mp_obj_new_tuple(4, tuple);
 }
 static MP_DEFINE_CONST_FUN_OBJ_1(experimental_benchmark_detailed_obj, experimental_benchmark_detailed);
+
+// -----------------------------------------------------------------------------
+// Registry
+// -----------------------------------------------------------------------------
 
 static const mp_rom_map_elem_t experimental_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__),             MP_ROM_QSTR(MP_QSTR_experimental) },
@@ -123,4 +139,5 @@ const mp_obj_module_t pb_module_experimental = {
 #if !MICROPY_MODULE_BUILTIN_SUBPACKAGES
 MP_REGISTER_MODULE(MP_QSTR_pybricks_dot_experimental, pb_module_experimental);
 #endif
-#endif
+
+#endif // PYBRICKS_PY_EXPERIMENTAL
