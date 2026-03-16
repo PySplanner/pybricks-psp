@@ -77,30 +77,28 @@ static mp_obj_t experimental_atan2(mp_obj_t y_in, mp_obj_t x_in) {
 }
 static MP_DEFINE_CONST_FUN_OBJ_2(experimental_atan2_obj, experimental_atan2);
 
+// Benchmark with seed to prevent constant folding
 static mp_obj_t experimental_benchmark_hardware(mp_obj_t seed_in) {
     float seed = mp_obj_get_float(seed_in);
-    
     DEMCR |= 0x01000000; DWT_CONTROL |= 1;
+
     uint32_t start, cyc_sin;
     volatile float res;
 
-    // We use a small loop to 'prime' the pipeline
     DWT_CYCCNT = 0;
     start = DWT_CYCCNT;
-    
-    // Changing the input slightly inside C to ensure the FPU actually works
+    // Chain operations to force the FPU to wait for the previous result
     res = fast_sin_internal(seed);
-    res = fast_sin_internal(res + 0.01f); // Chain them so the CPU must wait for the first to finish
-    
+    res = fast_sin_internal(res + 0.01f); 
     __asm volatile ("dsb"); 
     cyc_sin = DWT_CYCCNT - start;
 
     (void)res; 
 
-    // We divide by 2 because we ran the function twice to chain the results
+    // Return avg cycles for one operation
     return mp_obj_new_int(cyc_sin / 2);
 }
-static MP_DEFINE_CONST_FUN_OBJ_0(experimental_benchmark_hardware_obj, experimental_benchmark_hardware);
+static MP_DEFINE_CONST_FUN_OBJ_1(experimental_benchmark_hardware_obj, experimental_benchmark_hardware);
 
 static const mp_rom_map_elem_t experimental_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__),             MP_ROM_QSTR(MP_QSTR_experimental) },
