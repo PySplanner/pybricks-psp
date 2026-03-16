@@ -11,17 +11,16 @@
 
 #include <math.h>
 
-// Math Constants - Hardcoded for speed
+// Math Constants - Hardcoded for register-speed access
 static const float PI_F         = 3.1415926535f;
 static const float TWO_PI_F     = 6.2831853071f;
 static const float HALF_PI_F    = 1.5707963267f;
 static const float INV_TWO_PI_F = 0.1591549431f;
 
 // -----------------------------------------------------------------------------
-// Min-Maxed Internal Engines
+// Internal Math Engines (Inlined for zero call overhead)
 // -----------------------------------------------------------------------------
 
-// Core Polynomial - Inlined to remove call overhead
 static inline float fast_sin_poly(float x) {
     float x2 = x * x;
     // Horner's Method: reduces the number of multiplications
@@ -29,11 +28,9 @@ static inline float fast_sin_poly(float x) {
 }
 
 static inline float fast_sin_internal(float theta) {
-    // Fast range reduction
     float quot = theta * INV_TWO_PI_F;
     float x = theta - (float)((int)(quot + (quot > 0 ? 0.5f : -0.5f))) * TWO_PI_F;
 
-    // Symmetry reduction
     if (x > HALF_PI_F) { x = PI_F - x; }
     else if (x < -HALF_PI_F) { x = -PI_F - x; }
 
@@ -73,46 +70,59 @@ static mp_obj_t experimental_cos(mp_obj_t theta_in) {
 }
 static MP_DEFINE_CONST_FUN_OBJ_1(experimental_cos_obj, experimental_cos);
 
-// MIN-MAX: Using FUN_OBJ_2 instead of FUN_OBJ_KW to eliminate keyword parsing overhead
 static mp_obj_t experimental_atan2(mp_obj_t y_in, mp_obj_t x_in) {
     return mp_obj_new_float_from_f(fast_atan2_internal(mp_obj_get_float(y_in), mp_obj_get_float(x_in)));
 }
 static MP_DEFINE_CONST_FUN_OBJ_2(experimental_atan2_obj, experimental_atan2);
 
 // -----------------------------------------------------------------------------
-// Benchmark
+// Detailed Granular Benchmark
 // -----------------------------------------------------------------------------
 
-static mp_obj_t experimental_benchmark_internal(mp_obj_t n_in) {
+static mp_obj_t experimental_benchmark_detailed(mp_obj_t n_in) {
     int32_t n = mp_obj_get_int(n_in);
     volatile float result = 0.0f; 
-    uint32_t start = mp_hal_ticks_ms();
+    uint32_t t0, t1, t2, t3;
     
+    // Loop 1: Sine Only
+    t0 = mp_hal_ticks_ms();
     for (int32_t i = 0; i < n; i++) {
-        result += fast_sin_internal(1.23f);
-        result += fast_sin_internal(1.23f + HALF_PI_F);
-        result += fast_atan2_internal(1.23f, 1.23f);
+        result += fast_sin_internal(1.1f);
     }
     
-    uint32_t end = mp_hal_ticks_ms();
-    uint32_t total_ms = end - start;
-    float ns_per_op = (n > 0) ? ((float)total_ms * 1000000.0f) / n : 0;
+    // Loop 2: Cosine Only (includes the HALF_PI addition)
+    t1 = mp_hal_ticks_ms();
+    for (int32_t i = 0; i < n; i++) {
+        result += fast_sin_internal(1.1f + HALF_PI_F);
+    }
 
-    mp_obj_t tuple[2] = { mp_obj_new_int(total_ms), mp_obj_new_float(ns_per_op) };
-    return mp_obj_new_tuple(2, tuple);
+    // Loop 3: Atan2 Only (includes the division and branching)
+    t2 = mp_hal_ticks_ms();
+    for (int32_t i = 0; i < n; i++) {
+        result += fast_atan2_internal(1.1f, 1.1f);
+    }
+    t3 = mp_hal_ticks_ms();
+
+    mp_obj_t tuple[4] = {
+        mp_obj_new_int(t1 - t0), // Sin ms
+        mp_obj_new_int(t2 - t1), // Cos ms
+        mp_obj_new_int(t3 - t2), // Atan2 ms
+        mp_obj_new_int(t3 - t0)  // Total ms
+    };
+    return mp_obj_new_tuple(4, tuple);
 }
-static MP_DEFINE_CONST_FUN_OBJ_1(experimental_benchmark_internal_obj, experimental_benchmark_internal);
+static MP_DEFINE_CONST_FUN_OBJ_1(experimental_benchmark_detailed_obj, experimental_benchmark_detailed);
 
 // -----------------------------------------------------------------------------
 // Module Registry
 // -----------------------------------------------------------------------------
 
 static const mp_rom_map_elem_t experimental_globals_table[] = {
-    { MP_ROM_QSTR(MP_QSTR___name__),           MP_ROM_QSTR(MP_QSTR_experimental) },
-    { MP_ROM_QSTR(MP_QSTR_sin),                MP_ROM_PTR(&experimental_sin_obj) },
-    { MP_ROM_QSTR(MP_QSTR_cos),                MP_ROM_PTR(&experimental_cos_obj) },
-    { MP_ROM_QSTR(MP_QSTR_atan2),              MP_ROM_PTR(&experimental_atan2_obj) },
-    { MP_ROM_QSTR(MP_QSTR_benchmark_internal), MP_ROM_PTR(&experimental_benchmark_internal_obj) },
+    { MP_ROM_QSTR(MP_QSTR___name__),             MP_ROM_QSTR(MP_QSTR_experimental) },
+    { MP_ROM_QSTR(MP_QSTR_sin),                  MP_ROM_PTR(&experimental_sin_obj) },
+    { MP_ROM_QSTR(MP_QSTR_cos),                  MP_ROM_PTR(&experimental_cos_obj) },
+    { MP_ROM_QSTR(MP_QSTR_atan2),                MP_ROM_PTR(&experimental_atan2_obj) },
+    { MP_ROM_QSTR(MP_QSTR_benchmark_detailed),   MP_ROM_PTR(&experimental_benchmark_detailed_obj) },
 };
 static MP_DEFINE_CONST_DICT(pb_module_experimental_globals, experimental_globals_table);
 
