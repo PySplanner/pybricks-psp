@@ -10,6 +10,11 @@
 #include "py/runtime.h"
 #include <math.h>
 
+// ARM Cortex-M4 Hardware Cycle Counter registers
+#define DWT_CONTROL  (*((volatile uint32_t*)0xE0001000))
+#define DWT_CYCCNT   (*((volatile uint32_t*)0xE0001004))
+#define DEMCR        (*((volatile uint32_t*)0xE000EDFC))
+
 static const float PI_F          = 3.141592653589793f;
 static const float TWO_PI_F      = 6.283185307179586f;
 static const float HALF_PI_F     = 1.570796326794896f;
@@ -28,8 +33,7 @@ static inline float fast_sin_internal(float theta) {
 
     float x2 = x * x;
 
-    // By writing it as a = a + b * c, the GCC compiler for Cortex-M4 
-    // will automatically generate the VMLA (Multiply-Accumulate) instruction.
+    // GCC Pattern for VMLA (Multiply-Accumulate)
     float res = -0.000195152f;
     res = 0.008332152f + (x2 * res);
     res = -0.166666567f + (x2 * res);
@@ -47,7 +51,6 @@ static inline float fast_atan2_internal(float y, float x) {
 
     if (abs_x >= abs_y) {
         float r = y / x;
-        // Simplified for auto-VMLA
         float den = 1.0f + (r * r * 0.28086f);
         angle = r * (1.0f / den);
         if (x < 0.0f) {
@@ -62,51 +65,7 @@ static inline float fast_atan2_internal(float y, float x) {
 }
 
 // -----------------------------------------------------------------------------
-// Unrolled Benchmark
-// -----------------------------------------------------------------------------
-
-static mp_obj_t experimental_benchmark_detailed(mp_obj_t n_in) {
-    int32_t n = mp_obj_get_int(n_in);
-    volatile float result = 0.0f; 
-    uint32_t t0, t1, t2, t3;
-    float inv_n = 1.0f / (float)n;
-    
-    t0 = mp_hal_ticks_ms();
-    // 4x Unrolling for Sin
-    for (int32_t i = 0; i < n; i += 4) {
-        result += fast_sin_internal((float)(i) * inv_n);
-        result += fast_sin_internal((float)(i+1) * inv_n);
-        result += fast_sin_internal((float)(i+2) * inv_n);
-        result += fast_sin_internal((float)(i+3) * inv_n);
-    }
-    
-    t1 = mp_hal_ticks_ms();
-    // 4x Unrolling for Cos
-    for (int32_t i = 0; i < n; i += 4) {
-        result += fast_sin_internal(((float)(i) * inv_n) + HALF_PI_F);
-        result += fast_sin_internal(((float)(i+1) * inv_n) + HALF_PI_F);
-        result += fast_sin_internal(((float)(i+2) * inv_n) + HALF_PI_F);
-        result += fast_sin_internal(((float)(i+3) * inv_n) + HALF_PI_F);
-    }
-
-    t2 = mp_hal_ticks_ms();
-    for (int32_t i = 0; i < n; i++) {
-        result += fast_atan2_internal((float)i, (float)(n - i));
-    }
-    t3 = mp_hal_ticks_ms();
-
-    mp_obj_t tuple[4] = {
-        mp_obj_new_int(t1 - t0), 
-        mp_obj_new_int(t2 - t1), 
-        mp_obj_new_int(t3 - t2), 
-        mp_obj_new_int(t3 - t0)  
-    };
-    return mp_obj_new_tuple(4, tuple);
-}
-static MP_DEFINE_CONST_FUN_OBJ_1(experimental_benchmark_detailed_obj, experimental_benchmark_detailed);
-
-// -----------------------------------------------------------------------------
-// Standard Wrappers
+// MicroPython Wrappers
 // -----------------------------------------------------------------------------
 
 static mp_obj_t experimental_sin(mp_obj_t theta_in) {
@@ -124,12 +83,55 @@ static mp_obj_t experimental_atan2(mp_obj_t y_in, mp_obj_t x_in) {
 }
 static MP_DEFINE_CONST_FUN_OBJ_2(experimental_atan2_obj, experimental_atan2);
 
+// -----------------------------------------------------------------------------
+// The "Truth" Hardware Benchmark
+// -----------------------------------------------------------------------------
+
+static mp_obj_t experimental_benchmark_hardware(void) {
+    // Enable DWT Cycle Counter
+    DEMCR |= 0x01000000;     
+    DWT_CYCCNT = 0;          
+    DWT_CONTROL |= 1;        
+
+    float test_val = 1.1f;
+    uint32_t start, cyc_sin, cyc_cos, cyc_atan;
+
+    // Measure Sin
+    start = DWT_CYCCNT;
+    volatile float s = fast_sin_internal(test_val);
+    cyc_sin = DWT_CYCCNT - start;
+
+    // Measure Cos
+    start = DWT_CYCCNT;
+    volatile float c = fast_sin_internal(test_val + HALF_PI_F);
+    cyc_cos = DWT_CYCCNT - start;
+
+    // Measure Atan2
+    start = DWT_CYCCNT;
+    volatile float a = fast_atan2_internal(test_val, 0.5f);
+    cyc_atan = DWT_CYCCNT - start;
+
+    (void)s; (void)c; (void)a; // Prevent optimization cleanup
+
+    mp_obj_t tuple[3] = {
+        mp_obj_new_int(cyc_sin),
+        mp_obj_new_int(cyc_cos),
+        mp_obj_new_int(cyc_atan)
+    };
+    return mp_obj_new_tuple(3, tuple);
+}
+static MP_DEFINE_CONST_FUN_OBJ_0(experimental_benchmark_hardware_obj, experimental_benchmark_hardware);
+
+// -----------------------------------------------------------------------------
+// Registry
+// -----------------------------------------------------------------------------
+
 static const mp_rom_map_elem_t experimental_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__),             MP_ROM_QSTR(MP_QSTR_experimental) },
     { MP_ROM_QSTR(MP_QSTR_sin),                  MP_ROM_PTR(&experimental_sin_obj) },
     { MP_ROM_QSTR(MP_QSTR_cos),                  MP_ROM_PTR(&experimental_cos_obj) },
     { MP_ROM_QSTR(MP_QSTR_atan2),                MP_ROM_PTR(&experimental_atan2_obj) },
-    { MP_ROM_QSTR(MP_QSTR_benchmark_detailed),   MP_ROM_PTR(&experimental_benchmark_detailed_obj) },
+    { MP_ROM_QSTR(MP_QSTR_benchmark_hardware),   MP_ROM_PTR(&experimental_benchmark_hardware_obj) },
 };
 static MP_DEFINE_CONST_DICT(pb_module_experimental_globals, experimental_globals_table);
 
