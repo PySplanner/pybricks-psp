@@ -88,37 +88,31 @@ static MP_DEFINE_CONST_FUN_OBJ_2(experimental_atan2_obj, experimental_atan2);
 // -----------------------------------------------------------------------------
 
 static mp_obj_t experimental_benchmark_hardware(void) {
-    // Enable DWT Cycle Counter
-    DEMCR |= 0x01000000;     
-    DWT_CYCCNT = 0;          
-    DWT_CONTROL |= 1;        
+    DEMCR |= 0x01000000; DWT_CYCCNT = 0; DWT_CONTROL |= 1;
 
     float test_val = 1.1f;
     uint32_t start, cyc_sin, cyc_cos, cyc_atan;
+    volatile float res;
 
-    // Measure Sin
+    // Measure Sin with Barrier
     start = DWT_CYCCNT;
-    volatile float s = fast_sin_internal(test_val);
+    res = fast_sin_internal(test_val);
+    __asm volatile ("dsb"); // Hardware Barrier: Wait for math to finish
     cyc_sin = DWT_CYCCNT - start;
 
-    // Measure Cos
+    // Measure Atan2 with Barrier
+    DWT_CYCCNT = 0;
     start = DWT_CYCCNT;
-    volatile float c = fast_sin_internal(test_val + HALF_PI_F);
-    cyc_cos = DWT_CYCCNT - start;
-
-    // Measure Atan2
-    start = DWT_CYCCNT;
-    volatile float a = fast_atan2_internal(test_val, 0.5f);
+    res = fast_atan2_internal(test_val, 0.5f);
+    __asm volatile ("dsb"); // Hardware Barrier
     cyc_atan = DWT_CYCCNT - start;
 
-    (void)s; (void)c; (void)a; // Prevent optimization cleanup
+    (void)res; 
 
-    mp_obj_t tuple[3] = {
-        mp_obj_new_int(cyc_sin),
-        mp_obj_new_int(cyc_cos),
+    return mp_obj_new_tuple(2, (mp_obj_t[]){
+        mp_obj_new_int(cyc_sin), 
         mp_obj_new_int(cyc_atan)
-    };
-    return mp_obj_new_tuple(3, tuple);
+    });
 }
 static MP_DEFINE_CONST_FUN_OBJ_0(experimental_benchmark_hardware_obj, experimental_benchmark_hardware);
 
