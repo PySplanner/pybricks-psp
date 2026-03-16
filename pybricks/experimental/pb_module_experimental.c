@@ -10,14 +10,16 @@
 #include "py/runtime.h"
 #include <math.h>
 
-// Architecture Detection
+// Architecture Detection & Optimization Macros
 #if defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7EM__)
     #define IS_CORTEX_M 1
+    #define ACCEL_RAM __attribute__((section(".data"), noinline))
     #define DWT_CONTROL  (*((volatile uint32_t*)0xE0001000))
     #define DWT_CYCCNT   (*((volatile uint32_t*)0xE0001004))
     #define DEMCR        (*((volatile uint32_t*)0xE000EDFC))
 #else
     #define IS_CORTEX_M 0
+    #define ACCEL_RAM   // EV3/Linux handles RAM loading automatically
 #endif
 
 static const float PI_F          = 3.141592653589793f;
@@ -25,12 +27,11 @@ static const float TWO_PI_F      = 6.283185307179586f;
 static const float HALF_PI_F     = 1.570796326794896f;
 static const float INV_TWO_PI_F  = 0.159154943091895f;
 
-// ------------------------------------------------------------
-// Core Math Engines (Optimized per Architecture)
-// ------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// Core Math Engines (RAM Accelerated on Spike)
+// -----------------------------------------------------------------------------
 
-static inline float fast_sin_internal(float theta) {
-    // Range Reduction (Common)
+ACCEL_RAM static float fast_sin_internal(float theta) {
     float x = theta * INV_TWO_PI_F;
     x = theta - (float)((int)(x + (x > 0 ? 0.5f : -0.5f))) * TWO_PI_F;
 
@@ -41,41 +42,24 @@ static inline float fast_sin_internal(float theta) {
     float res;
 
     #if IS_CORTEX_M
-        // Spike Optimization: Pattern for Hardware VMLA (Multiply-Accumulate)
         res = -0.000195152f;
         res = 0.008332152f + (x2 * res);
         res = -0.166666567f + (x2 * res);
         res = 1.0f + (x2 * res);
     #else
-        // EV3 Optimization: Software-Float Register-Friendly Polynomial
-        // Horner's method helps the ARM9 emulator keep the 'x2' value 
-        // in a CPU register (r4-r7) to avoid re-calculating or memory loads.
-        float c3 = -0.000195152f;
-        float c2 = 0.008332152f;
-        float c1 = -0.166666567f;
-        res = 1.0f + x2 * (c1 + x2 * (c2 + x2 * c3));
+        res = 1.0f + x2 * (-0.166666567f + x2 * (0.008332152f + x2 * -0.000195152f));
     #endif
     
     return x * res;
 }
 
-static inline float fast_atan2_internal(float y, float x) {
+ACCEL_RAM static float fast_atan2_internal(float y, float x) {
     if (x == 0.0f && y == 0.0f) return 0.0f;
     float abs_y = fabsf(y) + 1e-10f;
     float abs_x = fabsf(x);
     float angle;
-
     float r = (abs_x >= abs_y) ? (y / x) : (x / y);
-    float r2 = r * r;
-    
-    #if IS_CORTEX_M
-        float den = 1.0f + (r2 * 0.28086f);
-    #else
-        // EV3: Avoid unnecessary float constants to save on pool loads
-        float coeff = 0.28086f;
-        float den = 1.0f + (r2 * coeff);
-    #endif
-    
+    float den = 1.0f + (r * r * 0.28086f);
     float res_atan = r * (1.0f / den);
 
     if (abs_x >= abs_y) {
@@ -87,9 +71,9 @@ static inline float fast_atan2_internal(float y, float x) {
     return angle;
 }
 
-// ------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // Wrappers & Hardware Benchmarks
-// ----------------------------
+// -----------------------------------------------------------------------------
 
 static mp_obj_t experimental_sin(mp_obj_t theta_in) {
     return mp_obj_new_float_from_f(fast_sin_internal(mp_obj_get_float(theta_in)));
@@ -110,24 +94,25 @@ static mp_obj_t experimental_benchmark_hardware(mp_obj_t seed_in) {
     float seed = mp_obj_get_float(seed_in);
     
     #if IS_CORTEX_M
+        // Spike Prime High-Res Cycle Counter
         DEMCR |= 0x01000000; DWT_CONTROL |= 1;
         DWT_CYCCNT = 0;
         uint32_t start = DWT_CYCCNT;
         volatile float res = fast_sin_internal(seed);
         res = fast_sin_internal(res + 0.01f); 
         __asm volatile ("dsb"); 
-        uint32_t cyc = DWT_CYCCNT - start;
-        return mp_obj_new_int(cyc / 2);
+        return mp_obj_new_int((DWT_CYCCNT - start) / 2);
     #else
-        // EV3: No Cycle Counter. Use microsecond-level timing via ticks_ms.
+        // EV3 / Generic: Microsecond-based average
         uint32_t t0 = mp_hal_ticks_ms();
         volatile float res = seed;
-        for(int i=0; i<20000; i++) {
-            res = fast_sin_internal(res);
+        int loops = 50000;
+        for(int i=0; i<loops; i++) {
+            res = fast_sin_internal(res + 0.0001f);
         }
-        uint32_t dt = mp_hal_ticks_ms() - t0;
-        // Return time in microseconds for 100 ops to keep scale
-        return mp_obj_new_int((dt * 1000) / 20000); 
+        uint32_t dt_ms = mp_hal_ticks_ms() - t0;
+        // Return result scaled as "nanoseconds" to match Python expected format
+        return mp_obj_new_int((dt_ms * 1000000) / loops);
     #endif
 }
 static MP_DEFINE_CONST_FUN_OBJ_1(experimental_benchmark_hardware_obj, experimental_benchmark_hardware);
