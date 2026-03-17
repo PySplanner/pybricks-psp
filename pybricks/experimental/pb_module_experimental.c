@@ -9,15 +9,23 @@
 #include "py/obj.h"
 #include "py/runtime.h"
 #include <math.h>
-#include <stdio.h> // For printf debugging
 
 #include <pbio/tacho.h>
 #include <pbio/drivebase.h>
 
-// Manually defining internal structures with padding to ensure we hit the right offset
+#if defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7EM__)
+    #define IS_CORTEX_M 1
+    #define ACCEL_RAM __attribute__((section(".data"), noinline))
+#else
+    #define IS_CORTEX_M 0
+    #define ACCEL_RAM
+#endif
+
+// Manually defining internal structures. 
+// Note: Added padding to verify the tacho pointer offset.
 typedef struct _pb_type_Motor_obj_t {
     mp_obj_base_t base;
-    char padding[4];      // Safety padding for different firmware versions
+    char padding[4]; 
     pbio_tacho_t *tacho;
 } pb_type_Motor_obj_t;
 
@@ -26,20 +34,13 @@ typedef struct _pb_type_DriveBase_obj_t {
     pbio_drivebase_t *db;
 } pb_type_DriveBase_obj_t;
 
-// Constants
-static const float PI_F = 3.141592653589793f;
-static const float HALF_PI_F = 1.570796326794896f;
-
-// Minimal Sin for testing
-static float fast_sin_internal(float x) {
-    return sinf(x); // Using standard math for debug version to rule out poly errors
-}
-
+// -----------------------------------------------------------------------------
+// High-Speed Direct-Tacho Odometry (Diagnostic Build)
+// -----------------------------------------------------------------------------
 static mp_obj_t experimental_odometry_benchmark(size_t n_args, const mp_obj_t *args) {
     int num_iters = mp_obj_get_int(args[0]);
     float wheel_circ = mp_obj_get_float(args[1]);
 
-    // Re-verify object pointers
     pb_type_Motor_obj_t *right_motor = (pb_type_Motor_obj_t *)MP_OBJ_TO_PTR(args[2]);
     pb_type_Motor_obj_t *left_motor = (pb_type_Motor_obj_t *)MP_OBJ_TO_PTR(args[3]);
     pb_type_DriveBase_obj_t *db_obj = (pb_type_DriveBase_obj_t *)MP_OBJ_TO_PTR(args[4]);
@@ -50,16 +51,18 @@ static mp_obj_t experimental_odometry_benchmark(size_t n_args, const mp_obj_t *a
     pbio_angle_t ang_l, ang_r;
     int32_t h_mdeg;
 
-    // DEBUG: Print initial values to see if C can even talk to the hardware
+    // Initial capture
     pbio_tacho_get_angle(left_motor->tacho, &ang_l);
     pbio_tacho_get_angle(right_motor->tacho, &ang_r);
-    printf("DEBUG START: L_Rot=%ld, R_Rot=%ld, Circ=%f\n", (long)ang_l.rotations, (long)ang_r.rotations, (double)wheel_circ);
+    pbio_drivebase_get_state_user(db_obj->db, NULL, NULL, &h_mdeg, NULL);
+
+    // LOG START: Using mp_printf to guarantee it shows up in the Pybricks IDE terminal
+    mp_printf(&mp_plat_print, "C-DEBUG: TachoL=%ld TachoR=%ld Circ=%d\n", 
+              (long)ang_l.rotations, (long)ang_r.rotations, (int)wheel_circ);
 
     float last_l_mm = ((float)ang_l.rotations * 360.0f + (float)ang_l.millidegrees / 1000.0f) * deg_to_mm;
     float last_r_mm = ((float)ang_r.rotations * 360.0f + (float)ang_r.millidegrees / 1000.0f) * deg_to_mm;
     float last_lin = (last_l_mm + last_r_mm) / 2.0f;
-    
-    pbio_drivebase_get_state_user(db_obj->db, NULL, NULL, &h_mdeg, NULL);
     float last_heading = (float)h_mdeg / 1000.0f;
 
     uint32_t start_time = mp_hal_ticks_ms();
@@ -79,8 +82,8 @@ static mp_obj_t experimental_odometry_benchmark(size_t n_args, const mp_obj_t *a
 
         if (fabsf(linear_delta) > 0.0f) {
             float avg_h_rad = (last_heading + (heading_delta / 2.0f)) * 0.01745329f;
-            robot_x += linear_delta * cosf(avg_h_rad); // Using standard cosf for debug
-            robot_y += linear_delta * sinf(avg_h_rad); // Using standard sinf for debug
+            robot_x += linear_delta * cosf(avg_h_rad);
+            robot_y += linear_delta * sinf(avg_h_rad);
         }
 
         last_lin = cur_lin;
@@ -91,9 +94,10 @@ static mp_obj_t experimental_odometry_benchmark(size_t n_args, const mp_obj_t *a
             mp_hal_delay_ms(1);
         }
         
-        // DEBUG: Print every 1M iterations
+        // LOG PROGRESS
         if (i > 0 && (i % 1000000) == 0) {
-            printf("ITER %d: X=%.2f, Y=%.2f, LinDelta=%f\n", i, (double)robot_x, (double)robot_y, (double)linear_delta);
+            mp_printf(&mp_plat_print, "C-ITER %d: X=%d Y=%d D=%d\n", 
+                      i, (int)robot_x, (int)robot_y, (int)linear_delta);
         }
     }
 
