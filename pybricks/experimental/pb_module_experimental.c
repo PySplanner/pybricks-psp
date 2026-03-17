@@ -24,14 +24,19 @@ STATIC mp_obj_t experimental_odometry_benchmark(size_t n_args, const mp_obj_t *a
 // 2. Define the function object
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(experimental_odometry_benchmark_obj, 5, 5, experimental_odometry_benchmark);
 
-// 3. Create the globals table for the module
+// 3. Create the globals table
 STATIC const mp_rom_map_elem_t experimental_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_odometry_benchmark), MP_ROM_PTR(&experimental_odometry_benchmark_obj) },
 };
 STATIC MP_DEFINE_CONST_DICT(pb_module_experimental_globals, experimental_globals_table);
 
-// NOTE: We have removed the 'const mp_obj_module_t pb_module_experimental' struct.
-// The Pybricks build system will generate this automatically in build/genhdr/moduledefs.h
-// based on the PYBRICKS_PY_EXPERIMENTAL flag and the filename.
+// 4. THE FIX: Explicitly register the module so the compiler sees the globals are used.
+// This matches the name used in your Makefile.
+const mp_obj_module_t pb_module_experimental = {
+    .base = { &mp_type_module },
+    .globals = (mp_obj_dict_t *)&pb_module_experimental_globals,
+};
+
+MP_REGISTER_MODULE(MP_QSTR_experimental, pb_module_experimental);
 
 #endif // PYBRICKS_PY_EXPERIMENTAL
