@@ -305,15 +305,12 @@ PY_EXTRA_SRC_C += $(addprefix bricks/_common/,\
 	)
 
 # --- CUSTOM ODOMETRY ENGINE ROUTING ---
-# Only add the math engine. The wrapper (pb_module_experimental.c) 
-# is already discovered automatically by the build system.
-
-ifneq (,$(findstring prime_hub,$(PBIO_PLATFORM)))
+# Precise routing for Spike Prime
+ifeq ($(strip $(PBIO_PLATFORM)),prime_hub)
     SRC_C += ../../pybricks/experimental/odometry_cortexm4.c
-else ifneq (,$(findstring ev3dev,$(PBIO_PLATFORM)))
+else ifeq ($(strip $(PBIO_PLATFORM)),ev3dev)
     SRC_C += ../../pybricks/experimental/odometry_arm9.c
 else
-    # Fallback for all other hubs
     SRC_C += ../../pybricks/experimental/odometry_arm9.c
 endif
 # Not all MCUs support thumb2 instructions.
