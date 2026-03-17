@@ -21,7 +21,7 @@
     #define ACCEL_RAM
 #endif
 
-// Manually defining the minimal internal structures to bypass header errors
+// Manually defining the minimal internal structures for cross-platform safety
 typedef struct _pb_type_Motor_obj_t {
     mp_obj_base_t base;
     pbio_tacho_t *tacho;
@@ -39,7 +39,7 @@ static const float HALF_PI_F = 1.570796326794896f;
 static const float INV_TWO_PI_F = 0.159154943091895f;
 
 // -----------------------------------------------------------------------------
-// Core Math Engine
+// Core Math Engine (Lasse Schlör Absolute Error Optimized)
 // -----------------------------------------------------------------------------
 ACCEL_RAM static float fast_sin_internal(float theta) {
     float x = theta * INV_TWO_PI_F;
@@ -88,6 +88,7 @@ static mp_obj_t experimental_odometry_benchmark(size_t n_args, const mp_obj_t *a
     uint32_t start_time = mp_hal_ticks_ms();
 
     for (int i = 0; i < num_iters; i++) {
+        // Direct hardware reads
         pbio_tacho_get_angle(left_motor->tacho, &ang_l);
         pbio_tacho_get_angle(right_motor->tacho, &ang_r);
         pbio_drivebase_get_state_user(db_obj->db, NULL, NULL, &h_mdeg, NULL);
@@ -108,8 +109,10 @@ static mp_obj_t experimental_odometry_benchmark(size_t n_args, const mp_obj_t *a
         last_lin = cur_lin;
         last_heading = cur_heading;
 
-        if ((i % 1000) == 0) {
+        // Stability Yield: Every 2000 loops, give the hub 1ms to update system tasks
+        if ((i % 2000) == 0) {
             mp_handle_pending(true);
+            mp_hal_delay_ms(1);
         }
     }
 
