@@ -1,115 +1,37 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2018-2026 The Pybricks Authors
-
 #include "py/mpconfig.h"
 
 #if PYBRICKS_PY_EXPERIMENTAL
 
-#include "py/mphal.h"
 #include "py/obj.h"
 #include "py/runtime.h"
-#include <math.h>
+#include "pybricks/experimental/odometry.h"
 
-#if defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7EM__)
-    #define IS_CORTEX_M 1
-    #define ACCEL_RAM __attribute__((section(".data"), noinline))
-#else
-    #define IS_CORTEX_M 0
-    #define ACCEL_RAM
-#endif
-
-// -----------------------------------------------------------------------------
-// Core Math Engine
-// -----------------------------------------------------------------------------
-ACCEL_RAM static float fast_sin_internal(float theta) {
-    float x = theta * 0.159154943f;
-    x = theta - (float)((int)(x + (x > 0 ? 0.5f : -0.5f))) * 6.2831853f;
-    if (x > 1.5707963f) x = 3.1415926f - x;
-    else if (x < -1.5707963f) x = -3.1415926f - x;
-    float x2 = x * x;
-    return x * (0.99999906f + x2 * (-0.16665554f + x2 * (0.00831190f + x2 * -0.00018488f)));
-}
-
-// -----------------------------------------------------------------------------
-// High-Speed API Odometry (Pure Encoders, No Gyro)
-// -----------------------------------------------------------------------------
-static mp_obj_t experimental_odometry_benchmark(size_t n_args, const mp_obj_t *args) {
+// This is the function that Python calls
+STATIC mp_obj_t experimental_odometry_benchmark(size_t n_args, const mp_obj_t *args) {
     int num_iters = mp_obj_get_int(args[0]);
     float wheel_circ = mp_obj_get_float(args[1]);
-    float axle_track = mp_obj_get_float(args[2]); // Added so we can do wheel math
+    float axle_track = mp_obj_get_float(args[2]);
+    mp_obj_t right_func = args[3];
+    mp_obj_t left_func = args[4];
 
-    // Receive the bound MicroPython methods for the motors
-    mp_obj_t right_angle_func = args[3];
-    mp_obj_t left_angle_func = args[4];
-
-    float deg_to_mm = wheel_circ / 360.0f;
-    float robot_x = 0.0f, robot_y = 0.0f;
-    float current_heading_rad = 0.0f;
-
-    // motor.angle() safely returns an integer
-    int32_t last_r_deg = mp_obj_get_int(mp_call_function_0(right_angle_func));
-    int32_t last_l_deg = mp_obj_get_int(mp_call_function_0(left_angle_func));
-
-    uint32_t start_time = mp_hal_ticks_ms();
-
-    for (int i = 0; i < num_iters; i++) {
-        int32_t cur_r_deg = mp_obj_get_int(mp_call_function_0(right_angle_func));
-        int32_t cur_l_deg = mp_obj_get_int(mp_call_function_0(left_angle_func));
-
-        // Calculate distance traveled by each wheel in this specific loop step
-        float delta_r_mm = (float)(cur_r_deg - last_r_deg) * deg_to_mm;
-        float delta_l_mm = (float)(cur_l_deg - last_l_deg) * deg_to_mm;
-
-        // Kinematics: Center distance and heading change
-        float linear_delta = (delta_r_mm + delta_l_mm) / 2.0f;
-        float heading_delta_rad = (delta_r_mm - delta_l_mm) / axle_track;
-
-        if (fabsf(linear_delta) > 0.0001f || fabsf(heading_delta_rad) > 0.0001f) {
-            // Arc integration: use the average heading during the movement step
-            float avg_h_rad = current_heading_rad + (heading_delta_rad / 2.0f);
-            
-            robot_x += linear_delta * fast_sin_internal(avg_h_rad + 1.5707963f); // cos
-            robot_y += linear_delta * fast_sin_internal(avg_h_rad); // sin
-            
-            current_heading_rad += heading_delta_rad;
-        }
-
-        last_r_deg = cur_r_deg;
-        last_l_deg = cur_l_deg;
-
-        // Yield for system stability
-        if ((i % 2000) == 0) {
-            mp_handle_pending(true);
-            mp_hal_delay_ms(1);
-        }
-    }
-
-    uint32_t dur = mp_hal_ticks_ms() - start_time;
-    mp_obj_t tuple[5] = {
-        mp_obj_new_float_from_f((float)dur / 1000.0f),
-        mp_obj_new_int(num_iters),
-        mp_obj_new_float_from_f((float)num_iters / ((float)dur / 1000.0f)),
-        mp_obj_new_float_from_f(robot_x),
-        mp_obj_new_float_from_f(robot_y)
-    };
-    return mp_obj_new_tuple(5, tuple);
+    return calculate_odometry(num_iters, wheel_circ, axle_track, right_func, left_func);
 }
+// We define it as a MicroPython function object
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(experimental_odometry_benchmark_obj, 5, 5, experimental_odometry_benchmark);
 
-static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(experimental_odometry_benchmark_obj, 5, 5, experimental_odometry_benchmark);
-
-static const mp_rom_map_elem_t experimental_globals_table[] = {
-    { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_experimental) },
+// We map the C function to the Python name "odometry_benchmark"
+STATIC const mp_rom_map_elem_t experimental_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_odometry_benchmark), MP_ROM_PTR(&experimental_odometry_benchmark_obj) },
 };
-static MP_DEFINE_CONST_DICT(pb_module_experimental_globals, experimental_globals_table);
+STATIC MP_DEFINE_CONST_DICT(pb_module_experimental_globals, experimental_globals_table);
 
+// This is the structure MicroPython looks for to register the module
 const mp_obj_module_t pb_module_experimental = {
     .base = { &mp_type_module },
     .globals = (mp_obj_dict_t *)&pb_module_experimental_globals,
 };
 
-#if !MICROPY_MODULE_BUILTIN_SUBPACKAGES
-MP_REGISTER_MODULE(MP_QSTR_pybricks_dot_experimental, pb_module_experimental);
-#endif
+// CRITICAL: We do NOT need a MP_REGISTER_MODULE tag here because 
+// the Pybricks build system handles registration via the Makefile/QSTR process.
 
 #endif // PYBRICKS_PY_EXPERIMENTAL
