@@ -9,21 +9,15 @@
 #include "py/obj.h"
 #include "py/runtime.h"
 #include <math.h>
+#include <stdio.h> // For printf debugging
 
 #include <pbio/tacho.h>
 #include <pbio/drivebase.h>
 
-#if defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7EM__)
-    #define IS_CORTEX_M 1
-    #define ACCEL_RAM __attribute__((section(".data"), noinline))
-#else
-    #define IS_CORTEX_M 0
-    #define ACCEL_RAM
-#endif
-
-// Manually defining internal structures to ensure compilation across builds
+// Manually defining internal structures with padding to ensure we hit the right offset
 typedef struct _pb_type_Motor_obj_t {
     mp_obj_base_t base;
+    char padding[4];      // Safety padding for different firmware versions
     pbio_tacho_t *tacho;
 } pb_type_Motor_obj_t;
 
@@ -34,104 +28,80 @@ typedef struct _pb_type_DriveBase_obj_t {
 
 // Constants
 static const float PI_F = 3.141592653589793f;
-static const float TWO_PI_F = 6.283185307179586f;
 static const float HALF_PI_F = 1.570796326794896f;
-static const float INV_TWO_PI_F = 0.159154943091895f;
 
-// -----------------------------------------------------------------------------
-// Core Math Engine (Lasse Schlör Absolute Error Optimized)
-// -----------------------------------------------------------------------------
-ACCEL_RAM static float fast_sin_internal(float theta) {
-    float x = theta * INV_TWO_PI_F;
-    x = theta - (float)((int)(x + (x > 0 ? 0.5f : -0.5f))) * TWO_PI_F;
-    if (x > HALF_PI_F) {
-        x = PI_F - x;
-    } else if (x < -HALF_PI_F) {
-        x = -PI_F - x;
-    }
-    float x2 = x * x;
-    #if IS_CORTEX_M
-    float res = -0.0001848814f;
-    res = 0.0083119000f + (x2 * res);
-    res = -0.1666555409f + (x2 * res);
-    return x * (0.9999990609f + (x2 * res));
-    #else
-    return x * (0.9999990609f + x2 * (-0.1666555409f + x2 * (0.0083119000f + x2 * -0.0001848814f)));
-    #endif
+// Minimal Sin for testing
+static float fast_sin_internal(float x) {
+    return sinf(x); // Using standard math for debug version to rule out poly errors
 }
 
-// -----------------------------------------------------------------------------
-// High-Speed Direct-Tacho Odometry
-// -----------------------------------------------------------------------------
 static mp_obj_t experimental_odometry_benchmark(size_t n_args, const mp_obj_t *args) {
     int num_iters = mp_obj_get_int(args[0]);
     float wheel_circ = mp_obj_get_float(args[1]);
 
+    // Re-verify object pointers
     pb_type_Motor_obj_t *right_motor = (pb_type_Motor_obj_t *)MP_OBJ_TO_PTR(args[2]);
     pb_type_Motor_obj_t *left_motor = (pb_type_Motor_obj_t *)MP_OBJ_TO_PTR(args[3]);
     pb_type_DriveBase_obj_t *db_obj = (pb_type_DriveBase_obj_t *)MP_OBJ_TO_PTR(args[4]);
 
-    // mm per degree
     float deg_to_mm = wheel_circ / 360.0f;
     float robot_x = 0.0f, robot_y = 0.0f;
     
     pbio_angle_t ang_l, ang_r;
     int32_t h_mdeg;
 
-    // Initial state capture
+    // DEBUG: Print initial values to see if C can even talk to the hardware
     pbio_tacho_get_angle(left_motor->tacho, &ang_l);
     pbio_tacho_get_angle(right_motor->tacho, &ang_r);
-    pbio_drivebase_get_state_user(db_obj->db, NULL, NULL, &h_mdeg, NULL);
+    printf("DEBUG START: L_Rot=%ld, R_Rot=%ld, Circ=%f\n", (long)ang_l.rotations, (long)ang_r.rotations, (double)wheel_circ);
 
     float last_l_mm = ((float)ang_l.rotations * 360.0f + (float)ang_l.millidegrees / 1000.0f) * deg_to_mm;
     float last_r_mm = ((float)ang_r.rotations * 360.0f + (float)ang_r.millidegrees / 1000.0f) * deg_to_mm;
     float last_lin = (last_l_mm + last_r_mm) / 2.0f;
+    
+    pbio_drivebase_get_state_user(db_obj->db, NULL, NULL, &h_mdeg, NULL);
     float last_heading = (float)h_mdeg / 1000.0f;
 
     uint32_t start_time = mp_hal_ticks_ms();
 
     for (int i = 0; i < num_iters; i++) {
-        // DIRECT SENSOR READS
         pbio_tacho_get_angle(left_motor->tacho, &ang_l);
         pbio_tacho_get_angle(right_motor->tacho, &ang_r);
         pbio_drivebase_get_state_user(db_obj->db, NULL, NULL, &h_mdeg, NULL);
 
-        // Convert to mm
         float cur_l_mm = ((float)ang_l.rotations * 360.0f + (float)ang_l.millidegrees / 1000.0f) * deg_to_mm;
         float cur_r_mm = ((float)ang_r.rotations * 360.0f + (float)ang_r.millidegrees / 1000.0f) * deg_to_mm;
-        
         float cur_lin = (cur_l_mm + cur_r_mm) / 2.0f;
         float cur_heading = (float)h_mdeg / 1000.0f;
 
         float linear_delta = cur_lin - last_lin;
         float heading_delta = cur_heading - last_heading;
 
-        // Only update if we actually moved
-        if (fabsf(linear_delta) > 0.0001f) {
-            // Average heading during the delta step for arc integration
-            float avg_h_rad = (last_heading + (heading_delta / 2.0f)) * 0.0174532925f;
-            
-            robot_x += linear_delta * fast_sin_internal(avg_h_rad + HALF_PI_F);
-            robot_y += linear_delta * fast_sin_internal(avg_h_rad);
+        if (fabsf(linear_delta) > 0.0f) {
+            float avg_h_rad = (last_heading + (heading_delta / 2.0f)) * 0.01745329f;
+            robot_x += linear_delta * cosf(avg_h_rad); // Using standard cosf for debug
+            robot_y += linear_delta * sinf(avg_h_rad); // Using standard sinf for debug
         }
 
         last_lin = cur_lin;
         last_heading = cur_heading;
 
-        // Stability yield
-        if ((i % 2000) == 0) {
+        if ((i % 5000) == 0) {
             mp_handle_pending(true);
             mp_hal_delay_ms(1);
+        }
+        
+        // DEBUG: Print every 1M iterations
+        if (i > 0 && (i % 1000000) == 0) {
+            printf("ITER %d: X=%.2f, Y=%.2f, LinDelta=%f\n", i, (double)robot_x, (double)robot_y, (double)linear_delta);
         }
     }
 
     uint32_t dur = mp_hal_ticks_ms() - start_time;
-    float duration = (float)dur / 1000.0f;
-
     mp_obj_t tuple[5] = {
-        mp_obj_new_float_from_f(duration),
+        mp_obj_new_float_from_f((float)dur / 1000.0f),
         mp_obj_new_int(num_iters),
-        mp_obj_new_float_from_f((float)num_iters / duration),
+        mp_obj_new_float_from_f((float)num_iters / ((float)dur / 1000.0f)),
         mp_obj_new_float_from_f(robot_x),
         mp_obj_new_float_from_f(robot_y)
     };
