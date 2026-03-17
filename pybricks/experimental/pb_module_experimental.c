@@ -13,13 +13,6 @@
 #include <pbio/tacho.h>
 #include <pbio/drivebase.h>
 
-// MANUALLY PROTOTYPE THE FIRMWARE GETTERS
-// This bypasses the header visibility issues while remaining safe.
-struct _pbio_tacho_t; 
-struct _pbio_drivebase_t;
-extern struct _pbio_tacho_t *pb_type_Motor_get_tacho(mp_obj_t obj);
-extern struct _pbio_drivebase_t *pb_type_drivebase_get_drivebase(mp_obj_t obj);
-
 #if defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7EM__)
     #define IS_CORTEX_M 1
     #define ACCEL_RAM __attribute__((section(".data"), noinline))
@@ -27,6 +20,18 @@ extern struct _pbio_drivebase_t *pb_type_drivebase_get_drivebase(mp_obj_t obj);
     #define IS_CORTEX_M 0
     #define ACCEL_RAM
 #endif
+
+// We define our own version of the objects based on the observed 
+// memory layout of the Spike Prime firmware.
+typedef struct _pb_type_Motor_obj_t {
+    mp_obj_base_t base;
+    pbio_tacho_t *tacho;
+} pb_type_Motor_obj_t;
+
+typedef struct _pb_type_DriveBase_obj_t {
+    mp_obj_base_t base;
+    pbio_drivebase_t *db;
+} pb_type_DriveBase_obj_t;
 
 // -----------------------------------------------------------------------------
 // Core Math Engine
@@ -41,16 +46,16 @@ ACCEL_RAM static float fast_sin_internal(float theta) {
 }
 
 // -----------------------------------------------------------------------------
-// High-Speed API-Based Odometry
+// High-Speed Odometry
 // -----------------------------------------------------------------------------
 static mp_obj_t experimental_odometry_benchmark(size_t n_args, const mp_obj_t *args) {
     int num_iters = mp_obj_get_int(args[0]);
     float wheel_circ = mp_obj_get_float(args[1]);
 
-    // Retrieve pointers using the prototyped firmware functions
-    pbio_tacho_t *right_tacho = (pbio_tacho_t *)pb_type_Motor_get_tacho(args[2]);
-    pbio_tacho_t *left_tacho = (pbio_tacho_t *)pb_type_Motor_get_tacho(args[3]);
-    pbio_drivebase_t *db = (pbio_drivebase_t *)pb_type_drivebase_get_drivebase(args[4]);
+    // Direct casting from the Python object to our defined struct
+    pb_type_Motor_obj_t *m_right = (pb_type_Motor_obj_t *)MP_OBJ_TO_PTR(args[2]);
+    pb_type_Motor_obj_t *m_left = (pb_type_Motor_obj_t *)MP_OBJ_TO_PTR(args[3]);
+    pb_type_DriveBase_obj_t *db_obj = (pb_type_DriveBase_obj_t *)MP_OBJ_TO_PTR(args[4]);
 
     float deg_to_mm = wheel_circ / 360.0f;
     float robot_x = 0.0f, robot_y = 0.0f;
@@ -58,10 +63,10 @@ static mp_obj_t experimental_odometry_benchmark(size_t n_args, const mp_obj_t *a
     pbio_angle_t ang_l, ang_r;
     int32_t h_mdeg;
 
-    // Capture initial state
-    pbio_tacho_get_angle(left_tacho, &ang_l);
-    pbio_tacho_get_angle(right_tacho, &ang_r);
-    pbio_drivebase_get_state_user(db, NULL, NULL, &h_mdeg, NULL);
+    // Initial capture
+    pbio_tacho_get_angle(m_left->tacho, &ang_l);
+    pbio_tacho_get_angle(m_right->tacho, &ang_r);
+    pbio_drivebase_get_state_user(db_obj->db, NULL, NULL, &h_mdeg, NULL);
 
     float last_l_mm = ((float)ang_l.rotations * 360.0f + (float)ang_l.millidegrees / 1000.0f) * deg_to_mm;
     float last_r_mm = ((float)ang_r.rotations * 360.0f + (float)ang_r.millidegrees / 1000.0f) * deg_to_mm;
@@ -71,9 +76,10 @@ static mp_obj_t experimental_odometry_benchmark(size_t n_args, const mp_obj_t *a
     uint32_t start_time = mp_hal_ticks_ms();
 
     for (int i = 0; i < num_iters; i++) {
-        pbio_tacho_get_angle(left_tacho, &ang_l);
-        pbio_tacho_get_angle(right_tacho, &ang_r);
-        pbio_drivebase_get_state_user(db, NULL, NULL, &h_mdeg, NULL);
+        // We use the pointers we grabbed directly from the structs
+        pbio_tacho_get_angle(m_left->tacho, &ang_l);
+        pbio_tacho_get_angle(m_right->tacho, &ang_r);
+        pbio_drivebase_get_state_user(db_obj->db, NULL, NULL, &h_mdeg, NULL);
 
         float cur_l_mm = ((float)ang_l.rotations * 360.0f + (float)ang_l.millidegrees / 1000.0f) * deg_to_mm;
         float cur_r_mm = ((float)ang_r.rotations * 360.0f + (float)ang_r.millidegrees / 1000.0f) * deg_to_mm;
@@ -92,7 +98,6 @@ static mp_obj_t experimental_odometry_benchmark(size_t n_args, const mp_obj_t *a
         last_lin = cur_lin;
         last_heading = cur_heading;
 
-        // Yield for system stability every 2000 loops
         if ((i % 2000) == 0) {
             mp_handle_pending(true);
             mp_hal_delay_ms(1);
