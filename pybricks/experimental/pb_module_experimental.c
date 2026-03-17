@@ -13,11 +13,6 @@
 #include <pbio/tacho.h>
 #include <pbio/drivebase.h>
 
-// We include the hub-specific headers to let the build system 
-// resolve the actual structure definitions.
-#include "pybricks/pupdevices.h"
-#include "pybricks/robotics.h"
-
 #if defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7EM__)
     #define IS_CORTEX_M 1
     #define ACCEL_RAM __attribute__((section(".data"), noinline))
@@ -26,13 +21,25 @@
     #define ACCEL_RAM
 #endif
 
+// Manually defining internal structures to bypass "Unknown Type" errors.
+// This matches the memory layout used in Spike and EV3 firmware.
+typedef struct _pb_type_Motor_obj_t {
+    mp_obj_base_t base;
+    pbio_tacho_t *tacho;
+} pb_type_Motor_obj_t;
+
+typedef struct _pb_type_DriveBase_obj_t {
+    mp_obj_base_t base;
+    pbio_drivebase_t *db;
+} pb_type_DriveBase_obj_t;
+
 // -----------------------------------------------------------------------------
-// Core Math Engine
+// Core Math Engine (MiniMax Polynomial Sine)
 // -----------------------------------------------------------------------------
 ACCEL_RAM static float fast_sin_internal(float theta) {
     float x = theta * 0.159154943f; // INV_TWO_PI
-    x = theta - (float)((int)(x + (x > 0 ? 0.5f : -0.5f))) * 6.2831853f;
-    if (x > 1.5707963f) x = 3.1415926f - x;
+    x = theta - (float)((int)(x + (x > 0 ? 0.5f : -0.5f))) * 6.2831853f; // TWO_PI
+    if (x > 1.5707963f) x = 3.1415926f - x; // HALF_PI, PI
     else if (x < -1.5707963f) x = -3.1415926f - x;
     float x2 = x * x;
     return x * (0.99999906f + x2 * (-0.16665554f + x2 * (0.00831190f + x2 * -0.00018488f)));
@@ -45,7 +52,7 @@ static mp_obj_t experimental_odometry_benchmark(size_t n_args, const mp_obj_t *a
     int num_iters = mp_obj_get_int(args[0]);
     float wheel_circ = mp_obj_get_float(args[1]);
 
-    // Use the official Pybricks object types
+    // Cast raw Python objects to our manual C-struct definitions
     pb_type_Motor_obj_t *right_motor = (pb_type_Motor_obj_t *)MP_OBJ_TO_PTR(args[2]);
     pb_type_Motor_obj_t *left_motor = (pb_type_Motor_obj_t *)MP_OBJ_TO_PTR(args[3]);
     pb_type_DriveBase_obj_t *db_obj = (pb_type_DriveBase_obj_t *)MP_OBJ_TO_PTR(args[4]);
@@ -69,6 +76,7 @@ static mp_obj_t experimental_odometry_benchmark(size_t n_args, const mp_obj_t *a
     uint32_t start_time = mp_hal_ticks_ms();
 
     for (int i = 0; i < num_iters; i++) {
+        // Direct Hardware Access
         pbio_tacho_get_angle(left_motor->tacho, &ang_l);
         pbio_tacho_get_angle(right_motor->tacho, &ang_r);
         pbio_drivebase_get_state_user(db_obj->db, NULL, NULL, &h_mdeg, NULL);
@@ -83,13 +91,14 @@ static mp_obj_t experimental_odometry_benchmark(size_t n_args, const mp_obj_t *a
 
         if (fabsf(linear_delta) > 0.0001f) {
             float avg_h_rad = (last_heading + (heading_delta / 2.0f)) * 0.01745329f;
-            robot_x += linear_delta * fast_sin_internal(avg_h_rad + 1.5707963f);
-            robot_y += linear_delta * fast_sin_internal(avg_h_rad);
+            robot_x += linear_delta * fast_sin_internal(avg_h_rad + 1.5707963f); // cos
+            robot_y += linear_delta * fast_sin_internal(avg_h_rad); // sin
         }
 
         last_lin = cur_lin;
         last_heading = cur_heading;
 
+        // Yield to hub system every 2000 loops
         if ((i % 2000) == 0) {
             mp_handle_pending(true);
             mp_hal_delay_ms(1);
