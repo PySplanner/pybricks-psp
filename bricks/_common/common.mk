@@ -267,25 +267,25 @@ include $(PBTOP)/bricks/_common/sources.mk
 
 # Extra core MicroPython files
 PY_EXTRA_SRC_C = $(addprefix shared/,\
-	runtime/interrupt_char.c \
-	runtime/pyexec.c \
-	runtime/stdout_helpers.c \
-	)
+    runtime/interrupt_char.c \
+    runtime/pyexec.c \
+    runtime/stdout_helpers.c \
+    )
 
 ifeq ($(PB_MCU_FAMILY),native)
 PY_EXTRA_SRC_C += $(addprefix shared/,\
-	runtime/gchelper_generic.c \
-	runtime/sys_stdio_mphal.c \
-	)
+    runtime/gchelper_generic.c \
+    runtime/sys_stdio_mphal.c \
+    )
 PY_EXTRA_SRC_C += $(addprefix bricks/virtualhub/,\
-	pbio_os_hook.c \
-	)
+    pbio_os_hook.c \
+    )
 else
 PY_EXTRA_SRC_C += $(addprefix shared/,\
-	libc/string0.c \
-	runtime/gchelper_native.c \
-	runtime/sys_stdio_mphal.c \
-	)
+    libc/string0.c \
+    runtime/gchelper_native.c \
+    runtime/sys_stdio_mphal.c \
+    )
 endif
 
 ifneq ($(PBIO_PLATFORM),move_hub)
@@ -294,14 +294,12 @@ PY_EXTRA_SRC_C += shared/readline/readline.c
 endif
 
 PY_EXTRA_SRC_C += $(addprefix bricks/_common/,\
-	micropython.c \
-	mphalport.c \
-	)
+    micropython.c \
+    mphalport.c \
+    )
 
 # --- UNIFIED ODOMETRY ENGINE (3-LAYER ARCHITECTURE) ---
-PY_EXTRA_SRC_C += \
-	
-	pybricks/experimental/odometry_core.c
+PY_EXTRA_SRC_C += pybricks/experimental/odometry_core.c
 
 # Not all MCUs support thumb2 instructions.
 ifeq ($(PB_MCU_FAMILY),native)
@@ -313,152 +311,152 @@ SRC_S += shared/runtime/gchelper_thumb2.s
 endif
 
 TI_AM1808_SRC_C = $(addprefix lib/tiam1808/,\
-	drivers/cppi41dma.c \
-	drivers/cpsw.c \
-	drivers/dmtimer.c \
-	drivers/ecap.c \
-	drivers/edma.c \
-	drivers/ehrpwm.c \
-	drivers/emifa.c \
-	drivers/gpio.c \
-	drivers/gpmc.c \
-	drivers/hs_mmcsd.c \
-	drivers/i2c.c \
-	drivers/mcasp.c \
-	drivers/mcspi.c \
-	drivers/mdio.c \
-	drivers/pruss.c \
-	drivers/psc.c \
-	drivers/rtc.c \
-	drivers/spi.c \
-	drivers/syscfg.c \
-	drivers/timer.c \
-	drivers/uart.c \
-	drivers/usb.c \
-	drivers/usbphyGS60.c \
-	drivers/watchdog.c \
-	system_config/armv5/am1808/interrupt.c \
-	system_config/armv5/gcc/cp15.c \
-	system_config/armv5/gcc/cpu.c \
-	)
+    drivers/cppi41dma.c \
+    drivers/cpsw.c \
+    drivers/dmtimer.c \
+    drivers/ecap.c \
+    drivers/edma.c \
+    drivers/ehrpwm.c \
+    drivers/emifa.c \
+    drivers/gpio.c \
+    drivers/gpmc.c \
+    drivers/hs_mmcsd.c \
+    drivers/i2c.c \
+    drivers/mcasp.c \
+    drivers/mcspi.c \
+    drivers/mdio.c \
+    drivers/pruss.c \
+    drivers/psc.c \
+    drivers/rtc.c \
+    drivers/spi.c \
+    drivers/syscfg.c \
+    drivers/timer.c \
+    drivers/uart.c \
+    drivers/usb.c \
+    drivers/usbphyGS60.c \
+    drivers/watchdog.c \
+    system_config/armv5/am1808/interrupt.c \
+    system_config/armv5/gcc/cp15.c \
+    system_config/armv5/gcc/cpu.c \
+    )
 
 TI_AM1808_SRC_C += $(addprefix lib/pbio/drv/uart/uart_ev3_pru_lib/,\
-	pru.c \
-	suart_api.c \
-	suart_utils.c \
-	)
+    pru.c \
+    suart_api.c \
+    suart_utils.c \
+    )
 
 EV3_SRC_S = $(addprefix lib/pbio/platform/ev3/,\
-	exceptionhandler.S \
-	start.S \
-	)
+    exceptionhandler.S \
+    start.S \
+    )
 
 BLUENRG_SRC_C = $(addprefix lib/BlueNRG-MS/hci/,\
-	controller/bluenrg_gap_aci.c \
-	controller/bluenrg_gatt_aci.c \
-	controller/bluenrg_hal_aci.c \
-	controller/bluenrg_l2cap_aci.c \
-	controller/bluenrg_updater_aci.c \
-	hci_le.c \
-	)
+    controller/bluenrg_gap_aci.c \
+    controller/bluenrg_gatt_aci.c \
+    controller/bluenrg_hal_aci.c \
+    controller/bluenrg_l2cap_aci.c \
+    controller/bluenrg_updater_aci.c \
+    hci_le.c \
+    )
 
 BLE5STACK_SRC_C = $(addprefix lib/ble5stack/central/,\
-	att.c \
-	gap.c \
-	gatt.c \
-	hci_ext.c \
-	hci.c \
-	util.c \
-	)
+    att.c \
+    gap.c \
+    gatt.c \
+    hci_ext.c \
+    hci.c \
+    util.c \
+    )
 
 BTSTACK_SRC_C = $(addprefix lib/btstack/src/,\
-	ad_parser.c \
-	btstack_audio.c \
-	btstack_base64_decoder.c \
-	btstack_crypto.c \
-	btstack_hid_parser.c \
-	btstack_linked_list.c \
-	btstack_memory_pool.c \
-	btstack_memory.c \
-	btstack_ring_buffer.c \
-	btstack_run_loop.c \
-	btstack_slip.c \
-	btstack_tlv.c \
-	btstack_util.c \
-	hci_cmd.c \
-	hci_dump.c \
-	hci_transport_em9304_spi.c \
-	hci_transport_h4.c \
-	hci_transport_h5.c \
-	hci.c \
-	l2cap_signaling.c \
-	l2cap.c \
-	)
+    ad_parser.c \
+    btstack_audio.c \
+    btstack_base64_decoder.c \
+    btstack_crypto.c \
+    btstack_hid_parser.c \
+    btstack_linked_list.c \
+    btstack_memory_pool.c \
+    btstack_memory.c \
+    btstack_ring_buffer.c \
+    btstack_run_loop.c \
+    btstack_slip.c \
+    btstack_tlv.c \
+    btstack_util.c \
+    hci_cmd.c \
+    hci_dump.c \
+    hci_transport_em9304_spi.c \
+    hci_transport_h4.c \
+    hci_transport_h5.c \
+    hci.c \
+    l2cap_signaling.c \
+    l2cap.c \
+    )
 
 BTSTACK_BLE_SRC_C += $(addprefix lib/btstack/src/ble/,\
-	att_db_util.c \
-	att_db.c \
-	att_dispatch.c \
-	att_server.c \
-	gatt_client.c \
-	gatt-service/device_information_service_server.c \
-	gatt-service/nordic_spp_service_server.c \
-	le_device_db_memory.c \
-	sm.c \
-	)
+    att_db_util.c \
+    att_db.c \
+    att_dispatch.c \
+    att_server.c \
+    gatt_client.c \
+    gatt-service/device_information_service_server.c \
+    gatt-service/nordic_spp_service_server.c \
+    le_device_db_memory.c \
+    sm.c \
+    )
 
 BTSTACK_SRC_C += $(addprefix lib/btstack/chipset/cc256x/,\
-	btstack_chipset_cc256x.c \
-	)
+    btstack_chipset_cc256x.c \
+    )
 
 ifeq ($(PB_MCU_FAMILY),native)
 BTSTACK_SRC_C += $(addprefix lib/btstack/,\
-	platform/libusb/hci_transport_h2_libusb.c \
-	platform/posix/hci_dump_posix_stdout.c \
-	platform/posix/btstack_tlv_posix.c \
-	src/classic/btstack_link_key_db_tlv.c \
-	src/ble/le_device_db_tlv.c \
-	chipset/zephyr/btstack_chipset_zephyr.c \
-	chipset/realtek/btstack_chipset_realtek.c \
-	chipset/bcm/btstack_chipset_bcm.c \
-	chipset/intel/btstack_chipset_intel_firmware.c \
-	3rd-party/rijndael/rijndael.c \
-	3rd-party/micro-ecc/uECC.c \
-	)
+    platform/libusb/hci_transport_h2_libusb.c \
+    platform/posix/hci_dump_posix_stdout.c \
+    platform/posix/btstack_tlv_posix.c \
+    src/classic/btstack_link_key_db_tlv.c \
+    src/ble/le_device_db_tlv.c \
+    chipset/zephyr/btstack_chipset_zephyr.c \
+    chipset/realtek/btstack_chipset_realtek.c \
+    chipset/bcm/btstack_chipset_bcm.c \
+    chipset/intel/btstack_chipset_intel_firmware.c \
+    3rd-party/rijndael/rijndael.c \
+    3rd-party/micro-ecc/uECC.c \
+    )
 $(BUILD)/lib/btstack/platform/libusb/hci_transport_h2_libusb.o: CFLAGS += -Wno-unused-variable
 endif
 
 COPT += -DUSE_FULL_LL_DRIVER
 
 STM32_HAL_SRC_C = $(addprefix lib/stm32lib/STM32$(PB_MCU_SERIES)xx_HAL_Driver/Src/,\
-	stm32$(PB_MCU_SERIES_LCASE)xx_hal_adc_ex.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_hal_adc.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_hal_cortex.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_hal_dac_ex.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_hal_dac.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_hal_dma.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_hal_flash_ex.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_hal_flash.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_hal_fmpi2c.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_hal_gpio.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_hal_i2c.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_hal_pcd_ex.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_hal_pcd.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_hal_pwr_ex.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_hal_rcc_ex.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_hal_rcc.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_hal_rng.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_hal_spi.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_hal_tim_ex.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_hal_tim.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_hal_uart_ex.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_hal_uart.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_hal.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_ll_lpuart.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_ll_rcc.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_ll_usart.c \
-	stm32$(PB_MCU_SERIES_LCASE)xx_ll_usb.c \
-	)
+    stm32$(PB_MCU_SERIES_LCASE)xx_hal_adc_ex.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_hal_adc.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_hal_cortex.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_hal_dac_ex.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_hal_dac.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_hal_dma.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_hal_flash_ex.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_hal_flash.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_hal_fmpi2c.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_hal_gpio.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_hal_i2c.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_hal_pcd_ex.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_hal_pcd.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_hal_pwr_ex.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_hal_rcc_ex.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_hal_rcc.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_hal_rng.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_hal_spi.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_hal_tim_ex.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_hal_tim.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_hal_uart_ex.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_hal_uart.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_hal.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_ll_lpuart.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_ll_rcc.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_ll_usart.c \
+    stm32$(PB_MCU_SERIES_LCASE)xx_ll_usb.c \
+    )
 
 ifeq ($(PB_MCU_SERIES),F0)
 STM32_HAL_SRC_C := $(filter-out %xx_hal_rng.c, $(STM32_HAL_SRC_C))
@@ -481,20 +479,20 @@ endif
 LSM6DS3TR_C_SRC_C = lib/lsm6ds3tr_c_STdC/driver/lsm6ds3tr_c_reg.c
 
 SRC_STM32_USB_DEV = $(addprefix lib/STM32_USB_Device_Library/,\
-	Core/Src/usbd_core.c \
-	Core/Src/usbd_ctlreq.c \
-	Core/Src/usbd_ioreq.c \
-	)
+    Core/Src/usbd_core.c \
+    Core/Src/usbd_ctlreq.c \
+    Core/Src/usbd_ioreq.c \
+    )
 
 ifeq ($(PB_LIB_STM32_USB_DEVICE),1)
-	INC += -I$(PBTOP)/lib/pbio/drv/usb/stm32_usbd
+    INC += -I$(PBTOP)/lib/pbio/drv/usb/stm32_usbd
 endif
 
 SRC_STM32_USB_DEV += $(addprefix lib/pbio/drv/usb/stm32_usbd/,\
-	usbd_conf.c \
-	usbd_desc.c \
-	usbd_pybricks.c \
-	)
+    usbd_conf.c \
+    usbd_desc.c \
+    usbd_pybricks.c \
+    )
 
 SRC_UMM_MALLOC = lib/umm_malloc/src/umm_malloc.c
 
@@ -503,27 +501,27 @@ CFLAGS += -I$(PBTOP)/lib/umm_malloc/src
 endif
 
 NXOS_SRC_C = $(addprefix lib/pbio/platform/nxt/nxos/,\
-	_abort.c \
-	assert.c \
-	drivers/_efc.c \
-	drivers/_twi.c \
-	drivers/_uart.c \
-	drivers/aic.c \
-	drivers/bt.c \
-	drivers/i2c_memory.c \
-	drivers/i2c.c \
-	drivers/motors.c \
-	drivers/radar.c \
-	drivers/rs485.c \
-	drivers/sensors.c \
-	interrupts.c \
-	lock.c \
-	util.c \
-	)
+    _abort.c \
+    assert.c \
+    drivers/_efc.c \
+    drivers/_twi.c \
+    drivers/_uart.c \
+    drivers/aic.c \
+    drivers/bt.c \
+    drivers/i2c_memory.c \
+    drivers/i2c.c \
+    drivers/motors.c \
+    drivers/radar.c \
+    drivers/rs485.c \
+    drivers/sensors.c \
+    interrupts.c \
+    lock.c \
+    util.c \
+    )
 
 NXOS_SRC_S = $(addprefix lib/pbio/platform/nxt/nxos/,\
-	irq.s \
-	)
+    irq.s \
+    )
 
 ifneq ($(PB_MCU_FAMILY),TIAM1808)
 SRC_S += lib/pbio/platform/$(PBIO_PLATFORM)/startup.s
@@ -616,8 +614,8 @@ all: $(TARGETS)
 
 ifeq ($(PB_LIB_BTSTACK),1)
 GATT_FILES := $(addprefix lib/pbio/drv/bluetooth/,\
-	pybricks_service.gatt \
-	)
+    pybricks_service.gatt \
+    )
 GATT_H_FILES := $(addprefix $(BUILD)/genhdr/, $(notdir $(GATT_FILES:.gatt=.h)))
 $(BUILD)/lib/pbio/drv/bluetooth/bluetooth_btstack.o: $(GATT_H_FILES)
 $(BUILD)/genhdr/%.h: $(PBTOP)/lib/pbio/drv/bluetooth/%.gatt
@@ -685,9 +683,9 @@ $(BUILD)/firmware.metadata.json: $(BUILD)/firmware.elf $(METADATA)
 	$(Q)$(METADATA) $(FW_VERSION) $(PBIO_PLATFORM) $<.map $@
 
 ZIP_FILES := \
-	$(BUILD)/firmware-base.bin \
-	$(BUILD)/firmware.metadata.json \
-	ReadMe_OSS.txt \
+    $(BUILD)/firmware-base.bin \
+    $(BUILD)/firmware.metadata.json \
+    ReadMe_OSS.txt \
 
 $(BUILD)/firmware.zip: $(ZIP_FILES)
 	$(ECHO) "ZIP creating firmware package"
@@ -695,10 +693,10 @@ $(BUILD)/firmware.zip: $(ZIP_FILES)
 
 $(BUILD)/pru_suart.bin.o: $(PBTOP)/lib/pbio/drv/uart/uart_ev3_pru_lib/pru_suart.bin
 	$(Q)$(OBJCOPY) -I binary -O elf32-littlearm -B arm \
-		--rename-section .data=.pru0,alloc,load,readonly,data,contents $^ $@
+        --rename-section .data=.pru0,alloc,load,readonly,data,contents $^ $@
 $(BUILD)/pru_ledpwm.bin.o: $(BUILD)/pru_ledpwm.bin
 	$(Q)$(OBJCOPY) -I binary -O elf32-littlearm -B arm \
-		--rename-section .data=.pru1,alloc,load,readonly,data,contents $^ $@
+        --rename-section .data=.pru1,alloc,load,readonly,data,contents $^ $@
 
 $(BUILD)/%.dfu: $(BUILD)/%-base.bin
 	$(ECHO) "DFU Create $@"
