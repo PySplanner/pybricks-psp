@@ -10,9 +10,9 @@
 #include "py/runtime.h"
 #include <math.h>
 
-// Direct access to Pybricks internal types
-#include "pybricks/pupdevices/pb_type_pupdevices_motor.h"
-#include "pybricks/robotics/pb_type_robotics_drivebase.h"
+// Adjusted include paths to match Pybricks build system search paths
+#include "pybricks/pupdevices.h"
+#include "pybricks/robotics.h"
 #include <pbio/tacho.h>
 
 #if defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7EM__)
@@ -68,11 +68,11 @@ static float get_float_from_obj(mp_obj_t obj) {
 // The "Bare Metal" Odometry Benchmark
 // -----------------------------------------------------------------------------
 static mp_obj_t experimental_odometry_benchmark(size_t n_args, const mp_obj_t *args) {
-    // 1. Unpack Arguments as RAW C-STRUCTS
     int num_iters = mp_obj_get_int(args[0]);
     float wheel_circ = get_float_from_obj(args[1]);
 
-    // Cast Python objects directly to their internal C types
+    // Unpack as pointers to Pybricks objects
+    // Note: We use the generic object pointer then cast to access members
     pb_type_Motor_obj_t *right_motor = (pb_type_Motor_obj_t *)MP_OBJ_TO_PTR(args[2]);
     pb_type_Motor_obj_t *left_motor = (pb_type_Motor_obj_t *)MP_OBJ_TO_PTR(args[3]);
     pb_type_DriveBase_obj_t *db = (pb_type_DriveBase_obj_t *)MP_OBJ_TO_PTR(args[4]);
@@ -83,16 +83,14 @@ static mp_obj_t experimental_odometry_benchmark(size_t n_args, const mp_obj_t *a
 
     uint32_t start_time = mp_hal_ticks_ms();
 
-    // 2. The High-Speed Loop (Zero Python Callbacks)
     for (int i = 0; i < num_iters; i++) {
-        // Direct pointer access to encoder angles
         int32_t r_ang, l_ang;
         pbio_tacho_get_angle(right_motor->tacho, &r_ang);
         pbio_tacho_get_angle(left_motor->tacho, &l_ang);
 
-        // Direct pointer access to DriveBase heading (no .angle() call)
-        // Note: heading is already a float in the DriveBase struct
-        float robot_heading = db->heading;
+        // Heading access: On many Pybricks versions, it's inside a state struct
+        // We use the getter to be safe across EV3/Spike builds
+        float robot_heading = pbio_drivebase_get_heading(db->db);
 
         float current_linear = (float)(r_ang + l_ang) * deg_to_mm;
         float linear = current_linear - last_linear;
