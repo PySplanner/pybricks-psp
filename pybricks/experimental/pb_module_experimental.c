@@ -31,53 +31,51 @@ ACCEL_RAM static float fast_sin_internal(float theta) {
 }
 
 // -----------------------------------------------------------------------------
-// High-Speed API Odometry
+// High-Speed API Odometry (Pure Encoders, No Gyro)
 // -----------------------------------------------------------------------------
 static mp_obj_t experimental_odometry_benchmark(size_t n_args, const mp_obj_t *args) {
     int num_iters = mp_obj_get_int(args[0]);
     float wheel_circ = mp_obj_get_float(args[1]);
+    float axle_track = mp_obj_get_float(args[2]); // Added so we can do wheel math
 
-    // THE CORRECT WAY: Receive the bound MicroPython methods (e.g. motor.angle)
-    mp_obj_t right_angle_func = args[2];
-    mp_obj_t left_angle_func = args[3];
-    mp_obj_t db_heading_func = args[4];
+    // Receive the bound MicroPython methods for the motors
+    mp_obj_t right_angle_func = args[3];
+    mp_obj_t left_angle_func = args[4];
 
     float deg_to_mm = wheel_circ / 360.0f;
     float robot_x = 0.0f, robot_y = 0.0f;
+    float current_heading_rad = 0.0f;
 
-    // Call the functions safely via the MicroPython VM dispatcher to get initial state
+    // motor.angle() safely returns an integer
     int32_t last_r_deg = mp_obj_get_int(mp_call_function_0(right_angle_func));
     int32_t last_l_deg = mp_obj_get_int(mp_call_function_0(left_angle_func));
-    int32_t last_heading_deg = mp_obj_get_int(mp_call_function_0(db_heading_func));
-
-    float last_r_mm = (float)last_r_deg * deg_to_mm;
-    float last_l_mm = (float)last_l_deg * deg_to_mm;
-    float last_lin = (last_l_mm + last_r_mm) / 2.0f;
 
     uint32_t start_time = mp_hal_ticks_ms();
 
     for (int i = 0; i < num_iters; i++) {
-        // Execute the hardware read securely. 
-        // This resolves to the internal Pybricks C-function automatically.
         int32_t cur_r_deg = mp_obj_get_int(mp_call_function_0(right_angle_func));
         int32_t cur_l_deg = mp_obj_get_int(mp_call_function_0(left_angle_func));
-        int32_t cur_heading_deg = mp_obj_get_int(mp_call_function_0(db_heading_func));
 
-        float cur_r_mm = (float)cur_r_deg * deg_to_mm;
-        float cur_l_mm = (float)cur_l_deg * deg_to_mm;
-        float cur_lin = (cur_l_mm + cur_r_mm) / 2.0f;
+        // Calculate distance traveled by each wheel in this specific loop step
+        float delta_r_mm = (float)(cur_r_deg - last_r_deg) * deg_to_mm;
+        float delta_l_mm = (float)(cur_l_deg - last_l_deg) * deg_to_mm;
 
-        float linear_delta = cur_lin - last_lin;
-        float heading_delta = (float)(cur_heading_deg - last_heading_deg);
+        // Kinematics: Center distance and heading change
+        float linear_delta = (delta_r_mm + delta_l_mm) / 2.0f;
+        float heading_delta_rad = (delta_r_mm - delta_l_mm) / axle_track;
 
-        if (fabsf(linear_delta) > 0.0001f) {
-            float avg_h_rad = ((float)last_heading_deg + (heading_delta / 2.0f)) * 0.01745329f;
-            robot_x += linear_delta * fast_sin_internal(avg_h_rad + 1.5707963f);
-            robot_y += linear_delta * fast_sin_internal(avg_h_rad);
+        if (fabsf(linear_delta) > 0.0001f || fabsf(heading_delta_rad) > 0.0001f) {
+            // Arc integration: use the average heading during the movement step
+            float avg_h_rad = current_heading_rad + (heading_delta_rad / 2.0f);
+            
+            robot_x += linear_delta * fast_sin_internal(avg_h_rad + 1.5707963f); // cos
+            robot_y += linear_delta * fast_sin_internal(avg_h_rad); // sin
+            
+            current_heading_rad += heading_delta_rad;
         }
 
-        last_lin = cur_lin;
-        last_heading_deg = cur_heading_deg;
+        last_r_deg = cur_r_deg;
+        last_l_deg = cur_l_deg;
 
         // Yield for system stability
         if ((i % 2000) == 0) {
