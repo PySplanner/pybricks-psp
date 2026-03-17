@@ -2,6 +2,13 @@
 
 # Changelog
 
+## [psp0.2.0a] - 2026-03-17
+
+### Added
+- Fully working odometry in C
+
+NOTE: PySplanner is not ready for use, the psp0.x.xa releases are for testing only
+
 ## [psp0.1.0a] - 2026-03-15
 
 ### Added
