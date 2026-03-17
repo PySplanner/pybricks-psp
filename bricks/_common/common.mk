@@ -305,14 +305,14 @@ PY_EXTRA_SRC_C += $(addprefix bricks/_common/,\
 	)
 
 # --- CUSTOM ODOMETRY ENGINE ROUTING ---
-# Precise routing for Spike Prime
 ifeq ($(strip $(PBIO_PLATFORM)),prime_hub)
-    SRC_C += ../../pybricks/experimental/odometry_cortexm4.c
+    PY_EXTRA_SRC_C += pybricks/experimental/odometry_cortexm4.c
 else ifeq ($(strip $(PBIO_PLATFORM)),ev3dev)
-    SRC_C += ../../pybricks/experimental/odometry_arm9.c
+    PY_EXTRA_SRC_C += pybricks/experimental/odometry_arm9.c
 else
-    SRC_C += ../../pybricks/experimental/odometry_arm9.c
+    PY_EXTRA_SRC_C += pybricks/experimental/odometry_arm9.c
 endif
+
 # Not all MCUs support thumb2 instructions.
 ifeq ($(PB_MCU_FAMILY),native)
 SRC_S +=
