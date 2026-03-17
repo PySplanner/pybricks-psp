@@ -1,8 +1,7 @@
 #include "py/mpconfig.h"
 #include "py/mphal.h"
 #include "py/runtime.h"
-
-// This must be here for the compiler to see pb_fast_sin/cos
+#include <math.h>
 #include "pybricks/experimental/platform_math.h"
 #include "pybricks/experimental/odometry.h"
 
@@ -21,17 +20,17 @@ mp_obj_t calculate_odometry(int num_iters, float wheel_circ, float axle_track, m
 
         float dR = (float)(cur_r - last_r) * deg_to_mm;
         float dL = (float)(cur_l - last_l) * deg_to_mm;
-        float dD = (dR + dL) * 0.5f;
-        float dH = (dR - dL) * inv_axle_track;
+        float dD = (dR + dL) * 0.5f; 
+        float dH = (dR - dL) * inv_axle_track; 
 
         if (dD != 0.0f || dH != 0.0f) {
             float avg_h = rh + (dH * 0.5f);
-            // These now use the optimized Spike polynomials
             rx += dD * pb_fast_cos(avg_h);
             ry += dD * pb_fast_sin(avg_h);
             rh += dH;
         }
-        last_r = cur_r; last_l = cur_l;
+        last_r = cur_r;
+        last_l = cur_l;
 
         if ((i & 0x3FF) == 0) {
             mp_handle_pending(true);
@@ -40,9 +39,9 @@ mp_obj_t calculate_odometry(int num_iters, float wheel_circ, float axle_track, m
 
     uint32_t dur = mp_hal_ticks_ms() - start_time;
     mp_obj_t tuple[5] = {
-        mp_obj_new_float_from_f((float)dur * 0.001f),
+        mp_obj_new_float_from_f((float)dur * 0.001f), 
         mp_obj_new_int(num_iters),
-        mp_obj_new_float_from_f((float)num_iters / ((float)dur * 0.001f)),
+        mp_obj_new_float_from_f((float)num_iters / ((float)dur * 0.001f)), 
         mp_obj_new_float_from_f(rx),
         mp_obj_new_float_from_f(ry)
     };
