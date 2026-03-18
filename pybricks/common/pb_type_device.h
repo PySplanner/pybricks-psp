@@ -53,7 +53,7 @@ extern const mp_obj_type_t pb_type_device_method;
  */
 #define PB_DEFINE_CONST_TYPE_DEVICE_METHOD_OBJ(obj_name, mode_id, get_values_func) \
         const pb_type_device_method_obj_t obj_name = \
-        {{&pb_type_device_method}, .mode = mode_id, .get_values = get_values_func}
+        { {&pb_type_device_method}, .mode = mode_id, .get_values = get_values_func}
 
 mp_obj_t pb_type_device_method_call(mp_obj_t self_in, size_t n_args, size_t n_kw, const mp_obj_t *args);
 mp_obj_t pb_type_pupdevices_method(mp_obj_t self_in, size_t n_args, size_t n_kw, const mp_obj_t *args);
