@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 #include "py/mpconfig.h"
 #include "py/mphal.h"
 #include "py/runtime.h"
@@ -20,8 +21,8 @@ mp_obj_t calculate_odometry(int num_iters, float wheel_circ, float axle_track, m
 
         float dR = (float)(cur_r - last_r) * deg_to_mm;
         float dL = (float)(cur_l - last_l) * deg_to_mm;
-        float dD = (dR + dL) * 0.5f; 
-        float dH = (dR - dL) * inv_axle_track; 
+        float dD = (dR + dL) * 0.5f;
+        float dH = (dR - dL) * inv_axle_track;
 
         if (dD != 0.0f || dH != 0.0f) {
             float avg_h = rh + (dH * 0.5f);
@@ -39,9 +40,9 @@ mp_obj_t calculate_odometry(int num_iters, float wheel_circ, float axle_track, m
 
     uint32_t dur = mp_hal_ticks_ms() - start_time;
     mp_obj_t tuple[5] = {
-        mp_obj_new_float_from_f((float)dur * 0.001f), 
+        mp_obj_new_float_from_f((float)dur * 0.001f),
         mp_obj_new_int(num_iters),
-        mp_obj_new_float_from_f((float)num_iters / ((float)dur * 0.001f)), 
+        mp_obj_new_float_from_f((float)num_iters / ((float)dur * 0.001f)),
         mp_obj_new_float_from_f(rx),
         mp_obj_new_float_from_f(ry)
     };
