@@ -198,12 +198,12 @@ struct _pbio_os_process_t {
  * @param [in]  condition   The condition (or statement expression) to check.
  */
 #define PBIO_OS_AWAIT_WHILE(state, condition)    \
-    do {                                         \
-        PBIO_OS_ASYNC_SET_CHECKPOINT(state);     \
-        if ((condition)) {                       \
-            return PBIO_ERROR_AGAIN;             \
-        }                                        \
-    } while (0)
+        do {                                         \
+            PBIO_OS_ASYNC_SET_CHECKPOINT(state);     \
+            if ((condition)) {                       \
+                return PBIO_ERROR_AGAIN;             \
+            }                                        \
+        } while (0)
 
 /**
  * Yields the protothread until the specified condition is true.
@@ -212,12 +212,12 @@ struct _pbio_os_process_t {
  * @param [in]  condition The condition (or statement expression) to check.
  */
 #define PBIO_OS_AWAIT_UNTIL(state, condition)    \
-    do {                                         \
-        PBIO_OS_ASYNC_SET_CHECKPOINT(state);     \
-        if (!(condition)) {                      \
-            return PBIO_ERROR_AGAIN;             \
-        }                                        \
-    } while (0)
+        do {                                         \
+            PBIO_OS_ASYNC_SET_CHECKPOINT(state);     \
+            if (!(condition)) {                      \
+                return PBIO_ERROR_AGAIN;             \
+            }                                        \
+        } while (0)
 
 /**
  * Awaits another (sub) protothread within the current (host) protothread until
@@ -228,13 +228,13 @@ struct _pbio_os_process_t {
  * @param [in]  calling_statement  The statement to await.
  */
 #define PBIO_OS_AWAIT(host_state, sub_state, calling_statement)  \
-    do {                                                         \
-        PBIO_OS_ASYNC_RESET((sub_state));                        \
-        PBIO_OS_ASYNC_SET_CHECKPOINT(host_state);                \
-        if ((calling_statement) == PBIO_ERROR_AGAIN) {           \
-            return PBIO_ERROR_AGAIN;                             \
-        }                                                        \
-    } while (0)
+        do {                                                         \
+            PBIO_OS_ASYNC_RESET((sub_state));                        \
+            PBIO_OS_ASYNC_SET_CHECKPOINT(host_state);                \
+            if ((calling_statement) == PBIO_ERROR_AGAIN) {           \
+                return PBIO_ERROR_AGAIN;                             \
+            }                                                        \
+        } while (0)
 
 
 /**
@@ -249,22 +249,22 @@ struct _pbio_os_process_t {
  * @param [in]  calling_statement_2    (Error-assigning) calling statement of the second sub protothread.
  */
 #define PBIO_OS_AWAIT_GATHER(host_state, err_1, sub_state_1, calling_statement_1, err_2, sub_state_2, calling_statement_2) \
-    do {                                                                                                   \
-        *err_1 = PBIO_ERROR_AGAIN;                                                                         \
-        *err_2 = PBIO_ERROR_AGAIN;                                                                         \
-        PBIO_OS_ASYNC_RESET((sub_state_1));                                                                \
-        PBIO_OS_ASYNC_RESET((sub_state_2));                                                                \
-        PBIO_OS_ASYNC_SET_CHECKPOINT(host_state);                                                          \
-        if (*err_1 == PBIO_ERROR_AGAIN) {                                                                  \
-            *err_1 = (calling_statement_1);                                                                \
-        }                                                                                                  \
-        if (*err_2 == PBIO_ERROR_AGAIN) {                                                                  \
-            *err_2 = (calling_statement_2);                                                                \
-        }                                                                                                  \
-        if (*err_1 == PBIO_ERROR_AGAIN || *err_2 == PBIO_ERROR_AGAIN) {                                    \
-            return PBIO_ERROR_AGAIN;                                                                       \
-        }                                                                                                  \
-    } while (0)
+        do {                                                                                                   \
+            *err_1 = PBIO_ERROR_AGAIN;                                                                         \
+            *err_2 = PBIO_ERROR_AGAIN;                                                                         \
+            PBIO_OS_ASYNC_RESET((sub_state_1));                                                                \
+            PBIO_OS_ASYNC_RESET((sub_state_2));                                                                \
+            PBIO_OS_ASYNC_SET_CHECKPOINT(host_state);                                                          \
+            if (*err_1 == PBIO_ERROR_AGAIN) {                                                                  \
+                *err_1 = (calling_statement_1);                                                                \
+            }                                                                                                  \
+            if (*err_2 == PBIO_ERROR_AGAIN) {                                                                  \
+                *err_2 = (calling_statement_2);                                                                \
+            }                                                                                                  \
+            if (*err_1 == PBIO_ERROR_AGAIN || *err_2 == PBIO_ERROR_AGAIN) {                                    \
+                return PBIO_ERROR_AGAIN;                                                                       \
+            }                                                                                                  \
+        } while (0)
 
 /**
  * Awaits two protothreads until one of them completes successfully or returns
@@ -277,14 +277,14 @@ struct _pbio_os_process_t {
  * @param [in]  calling_statement_2    (Error-assigning) calling statement of the second sub protothread.
  */
 #define PBIO_OS_AWAIT_RACE(host_state, sub_state_1, sub_state_2, calling_statement_1, calling_statement_2) \
-    do {                                                                                                   \
-        PBIO_OS_ASYNC_RESET((sub_state_1));                                                                \
-        PBIO_OS_ASYNC_RESET((sub_state_2));                                                                \
-        PBIO_OS_ASYNC_SET_CHECKPOINT(host_state);                                                          \
-        if ((calling_statement_1) == PBIO_ERROR_AGAIN && (calling_statement_2) == PBIO_ERROR_AGAIN) {      \
-            return PBIO_ERROR_AGAIN;                                                                       \
-        }                                                                                                  \
-    } while (0)
+        do {                                                                                                   \
+            PBIO_OS_ASYNC_RESET((sub_state_1));                                                                \
+            PBIO_OS_ASYNC_RESET((sub_state_2));                                                                \
+            PBIO_OS_ASYNC_SET_CHECKPOINT(host_state);                                                          \
+            if ((calling_statement_1) == PBIO_ERROR_AGAIN && (calling_statement_2) == PBIO_ERROR_AGAIN) {      \
+                return PBIO_ERROR_AGAIN;                                                                       \
+            }                                                                                                  \
+        } while (0)
 
 /**
  * Yields the protothread here once.
@@ -292,13 +292,13 @@ struct _pbio_os_process_t {
  * @param [in]  state     Protothread state.
  */
 #define PBIO_OS_AWAIT_ONCE(state)               \
-    do {                                        \
-        do_yield_now = 1;                       \
-        PBIO_OS_ASYNC_SET_CHECKPOINT(state);    \
-        if (do_yield_now) {                     \
-            return PBIO_ERROR_AGAIN;            \
-        }                                       \
-    } while (0)
+        do {                                        \
+            do_yield_now = 1;                       \
+            PBIO_OS_ASYNC_SET_CHECKPOINT(state);    \
+            if (do_yield_now) {                     \
+                return PBIO_ERROR_AGAIN;            \
+            }                                       \
+        } while (0)
 
 /**
  * Yields the protothread until the specified timer expires.
@@ -308,13 +308,13 @@ struct _pbio_os_process_t {
  * @param [in]  duration  The duration to wait for in milliseconds.
  */
 #define PBIO_OS_AWAIT_MS(state, timer, duration)      \
-    do {                                              \
-        pbio_os_timer_set(timer, duration);           \
-        PBIO_OS_ASYNC_SET_CHECKPOINT(state);          \
-        if (!pbio_os_timer_is_expired(timer)) {       \
-            return PBIO_ERROR_AGAIN;                  \
-        }                                             \
-    } while (0)                                       \
+        do {                                              \
+            pbio_os_timer_set(timer, duration);           \
+            PBIO_OS_ASYNC_SET_CHECKPOINT(state);          \
+            if (!pbio_os_timer_is_expired(timer)) {       \
+                return PBIO_ERROR_AGAIN;                  \
+            }                                             \
+        } while (0)                                       \
 
 void pbio_os_process_make_request(pbio_os_process_t *process, pbio_os_process_request_type_t request);
 

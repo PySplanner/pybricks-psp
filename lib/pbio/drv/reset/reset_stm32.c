@@ -43,14 +43,14 @@ void pbdrv_reset_init(void) {
 
 void pbdrv_reset(pbdrv_reset_action_t action) {
     switch (action) {
-        // Some platforms can't reboot in update mode. In those cases it will
-        // just shutdown instead so that update mode can be manually activated.
-        #if PBDRV_CONFIG_RESET_STM32_HAS_BLE_BOOTLOADER
+    // Some platforms can't reboot in update mode. In those cases it will
+    // just shutdown instead so that update mode can be manually activated.
+    #if PBDRV_CONFIG_RESET_STM32_HAS_BLE_BOOTLOADER
         case PBDRV_RESET_ACTION_RESET_IN_UPDATE_MODE:
             pbdrv_reset_stm32_bootloader_selector = BOOTLOADER_FIRMWARE_UPDATE_MODE;
             // fallthrough to PBDRV_RESET_ACTION_RESET
             __attribute__((fallthrough));
-        #endif // PBDRV_CONFIG_RESET_STM32_HAS_BLE_BOOTLOADER
+    #endif // PBDRV_CONFIG_RESET_STM32_HAS_BLE_BOOTLOADER
 
         case PBDRV_RESET_ACTION_RESET:
             NVIC_SystemReset(); // does not return

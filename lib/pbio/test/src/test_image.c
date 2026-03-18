@@ -122,7 +122,7 @@ static void test_image_dump(void) {
 }
 
 #define tt_want_clipping_correct() \
-    tt_want_(test_image_clipping_correct(), "want(clipping correct)", \
+        tt_want_(test_image_clipping_correct(), "want(clipping correct)", \
     test_image_dump())
 
 static void test_image_prepare_small_image(pbio_image_t *small) {
@@ -157,7 +157,7 @@ static void test_image_small_diff(const char *expected) {
 }
 
 #define tt_want_small_image(expected) \
-    tt_want_(test_image_small_equal((expected)), "want(image match)", \
+        tt_want_(test_image_small_equal((expected)), "want(image match)", \
     test_image_small_diff((expected)))
 
 static void test_image_fill(void *env) {

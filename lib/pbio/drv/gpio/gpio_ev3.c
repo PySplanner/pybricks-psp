@@ -43,7 +43,7 @@ static void pbdrv_gpio_alt_gpio(const pbdrv_gpio_t *gpio) {
 // continuously and is not expected to block for too long,
 // only on the order of microseconds.
 #define PBDRV_GPIO_EV3_ARM_OWNS_GPIO_BANK(pin_index)    \
-    ((pin_index) > 32 || !pbdrv_rproc_is_ready())
+        ((pin_index) > 32 || !pbdrv_rproc_is_ready())
 
 static void gpio_write(const pbdrv_gpio_t *gpio, uint8_t value) {
     if (!gpio) {

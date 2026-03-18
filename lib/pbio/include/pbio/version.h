@@ -77,9 +77,9 @@
  * Format is "X.Y.Z" and may have an additional prerelease suffix.
  */
 #define PBIO_VERSION_STR \
-    PBIO_XSTR(PBIO_VERSION_MAJOR) "." \
-    PBIO_XSTR(PBIO_VERSION_MINOR) "."  \
-    PBIO_XSTR(PBIO_VERSION_MICRO) PBIO_VERSION_SUFFIX
+        PBIO_XSTR(PBIO_VERSION_MAJOR) "." \
+        PBIO_XSTR(PBIO_VERSION_MINOR) "."  \
+        PBIO_XSTR(PBIO_VERSION_MICRO) PBIO_VERSION_SUFFIX
 
 #endif // _PBIO_VERSION_H_
 

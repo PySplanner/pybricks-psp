@@ -15,22 +15,25 @@
 // High-speed Minimax Polynomial for Sine/Cosine
 // This replaces the heavy math.h calls with raw FPU instructions
 ACCEL_RAM static float fast_sin_internal(float theta) {
-    float x = theta * 0.159154943f; 
-    x = theta - (float)((int)(x + (x > 0.0f ? 0.5f : -0.5f))) * 6.2831853f; 
-    
-    if (x > 1.5707963f) x = 3.1415926f - x;
-    else if (x < -1.5707963f) x = -3.1415926f - x;
-    
+    float x = theta * 0.159154943f;
+    x = theta - (float)((int)(x + (x > 0.0f ? 0.5f : -0.5f))) * 6.2831853f;
+
+    if (x > 1.5707963f) {
+        x = 3.1415926f - x;
+    } else if (x < -1.5707963f) {
+        x = -3.1415926f - x;
+    }
+
     float x2 = x * x;
     return x * (0.99999906f + x2 * (-0.16665554f + x2 * (0.00831190f + x2 * -0.00018488f)));
 }
 
 mp_obj_t calculate_odometry(int num_iters, float wheel_circ, float axle_track, mp_obj_t right_angle_func, mp_obj_t left_angle_func) {
-    
+
     // Pre-calculate kinematic constants
     float deg_to_mm = wheel_circ * 0.0027777778f; // (circ / 360)
     float inv_axle_track = 1.0f / axle_track;
-    
+
     // Robot state
     float rx = 0.0f;
     float ry = 0.0f;
@@ -50,8 +53,8 @@ mp_obj_t calculate_odometry(int num_iters, float wheel_circ, float axle_track, m
         // 2. Delta math
         float dR = (float)(cur_r - last_r) * deg_to_mm;
         float dL = (float)(cur_l - last_l) * deg_to_mm;
-        float dD = (dR + dL) * 0.5f; 
-        float dH = (dR - dL) * inv_axle_track; 
+        float dD = (dR + dL) * 0.5f;
+        float dH = (dR - dL) * inv_axle_track;
 
         // 3. RK2 Midpoint Integration
         if (dD != 0.0f || dH != 0.0f) {
@@ -72,12 +75,12 @@ mp_obj_t calculate_odometry(int num_iters, float wheel_circ, float axle_track, m
     }
 
     uint32_t dur = mp_hal_ticks_ms() - start_time;
-    
+
     // Packaging results for Python
     mp_obj_t tuple[5] = {
-        mp_obj_new_float_from_f((float)dur * 0.001f), 
+        mp_obj_new_float_from_f((float)dur * 0.001f),
         mp_obj_new_int(num_iters),
-        mp_obj_new_float_from_f((float)num_iters / ((float)dur * 0.001f)), 
+        mp_obj_new_float_from_f((float)num_iters / ((float)dur * 0.001f)),
         mp_obj_new_float_from_f(rx),
         mp_obj_new_float_from_f(ry)
     };

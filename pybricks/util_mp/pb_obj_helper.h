@@ -60,8 +60,8 @@ typedef struct {
 
 // Generic entry of the attributes dictionary.
 #define PB_DEFINE_CONST_ATTR_RO(name_, type, field) {           \
-        .name = (name_),                                        \
-        .offset = offsetof(type, field),                        \
+            .name = (name_),                                        \
+            .offset = offsetof(type, field),                        \
 }
 
 // Attribute handler for any object that has an attribute dictionary assigned

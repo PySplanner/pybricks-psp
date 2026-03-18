@@ -52,9 +52,9 @@ typedef struct {
 #define PBSYS_STATUS_LIGHT_DURATION_REPEAT (0)
 #define PBSYS_STATUS_LIGHT_DURATION_FOREVER (255)
 #define PBSYS_STATUS_LIGHT_INDICATION_PATTERN_REPEAT \
-    { .duration = PBSYS_STATUS_LIGHT_DURATION_REPEAT }
+        { .duration = PBSYS_STATUS_LIGHT_DURATION_REPEAT }
 #define PBSYS_STATUS_LIGHT_INDICATION_PATTERN_FOREVER(color_num) \
-    { .color = color_num, .duration = PBSYS_STATUS_LIGHT_DURATION_FOREVER, }
+        { .color = color_num, .duration = PBSYS_STATUS_LIGHT_DURATION_FOREVER, }
 
 static const pbsys_status_light_indication_pattern_element_t *const
 pbsys_status_light_indication_pattern_warning[] = {

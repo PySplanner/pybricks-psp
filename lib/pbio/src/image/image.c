@@ -21,17 +21,17 @@
  * First coordinate must not be greater than the second one.
  */
 #define clip_or_return(c1, c2, l) \
-    do { \
-        if ((c1) >= (l) || (c2) <= 0) { \
-            return; \
-        } \
-        if ((c1) < 0) { \
-            (c1) = 0; \
-        } \
-        if ((c2) > (l)) { \
-            (c2) = (l); \
-        } \
-    } while (0)
+        do { \
+            if ((c1) >= (l) || (c2) <= 0) { \
+                return; \
+            } \
+            if ((c1) < 0) { \
+                (c1) = 0; \
+            } \
+            if ((c2) > (l)) { \
+                (c2) = (l); \
+            } \
+        } while (0)
 
 /**
  * Initialize an image, using external storage.
