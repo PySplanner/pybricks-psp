@@ -16,7 +16,7 @@
 // This replaces the heavy math.h calls with raw FPU instructions
 ACCEL_RAM static float fast_sin_internal(float theta) {
     float x = theta * 0.159154943f;
-    x = theta - (float)((int)(x + (x > 0.0f ? 0.5f : -0.5f))) * 6.2831853f;
+    x = theta - (float)((int)(x + (x > 0.00f ? 0.5f : -0.5f))) * 6.2831853f;
 
     if (x > 1.5707963f) {
         x = 3.1415926f - x;
