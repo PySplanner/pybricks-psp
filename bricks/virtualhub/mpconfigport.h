@@ -80,10 +80,10 @@
 // advance the clock in those cases, which we mimic here by advancing the clock
 // every couple of MicroPython byte codes. This also polls to the event loop.
 #define PYBRICKS_VM_HOOK_LOOP_EXTRA \
-        do { \
-            extern void pbio_clock_test_advance_eventually(void); \
-            pbio_clock_test_advance_eventually(); \
-        } while (0);
+    do { \
+        extern void pbio_clock_test_advance_eventually(void); \
+        pbio_clock_test_advance_eventually(); \
+    } while (0);
 #else
 // When using the wall clock, time advances automatically but we still need to
 // request polling. This is done at the end of pbio_os_hook_wait_for_interrupt.
@@ -91,16 +91,16 @@
 // Instead of guessing with a number of instructions, here we can just poll
 // whenever the wall clock changes.
 #define PYBRICKS_VM_HOOK_LOOP_EXTRA \
-        do { \
-            static uint32_t clock_last; \
-            extern uint32_t pbdrv_clock_get_ms(void); \
-            uint32_t clock_now = pbdrv_clock_get_ms(); \
-            if (clock_last != clock_now) { \
-                extern void pbio_os_request_poll(void); \
-                pbio_os_request_poll(); \
-                clock_last = clock_now; \
-            } \
-        } while (0);
+    do { \
+        static uint32_t clock_last; \
+        extern uint32_t pbdrv_clock_get_ms(void); \
+        uint32_t clock_now = pbdrv_clock_get_ms(); \
+        if (clock_last != clock_now) { \
+            extern void pbio_os_request_poll(void); \
+            pbio_os_request_poll(); \
+            clock_last = clock_now; \
+        } \
+    } while (0);
 #endif
 
 // Allow printf for conventional purposes on native host, such as printing

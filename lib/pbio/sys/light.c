@@ -52,9 +52,9 @@ typedef struct {
 #define PBSYS_STATUS_LIGHT_DURATION_REPEAT (0)
 #define PBSYS_STATUS_LIGHT_DURATION_FOREVER (255)
 #define PBSYS_STATUS_LIGHT_INDICATION_PATTERN_REPEAT \
-        { .duration = PBSYS_STATUS_LIGHT_DURATION_REPEAT }
+    { .duration = PBSYS_STATUS_LIGHT_DURATION_REPEAT }
 #define PBSYS_STATUS_LIGHT_INDICATION_PATTERN_FOREVER(color_num) \
-        { .color = color_num, .duration = PBSYS_STATUS_LIGHT_DURATION_FOREVER, }
+    { .color = color_num, .duration = PBSYS_STATUS_LIGHT_DURATION_FOREVER, }
 
 static const pbsys_status_light_indication_pattern_element_t *const
 pbsys_status_light_indication_pattern_warning[] = {
@@ -204,10 +204,10 @@ void pbsys_status_light_handle_status_change(void) {
     pbsys_status_light_indication_warning_t warning_indication = PBSYS_STATUS_LIGHT_INDICATION_WARNING_NONE;
     if (pbsys_status_test(PBIO_PYBRICKS_STATUS_SHUTDOWN)) {
         warning_indication = PBSYS_STATUS_LIGHT_INDICATION_WARNING_SHUTDOWN;
-        #if PBSYS_CONFIG_STATUS_LIGHT_STATE_ANIMATIONS
+    #if PBSYS_CONFIG_STATUS_LIGHT_STATE_ANIMATIONS
     } else if (pbsys_status_test(PBIO_PYBRICKS_STATUS_SHUTDOWN_REQUEST)) {
         warning_indication = PBSYS_STATUS_LIGHT_INDICATION_WARNING_SHUTDOWN_REQUESTED;
-        #endif
+    #endif
     } else if (pbsys_status_test(PBIO_PYBRICKS_STATUS_BATTERY_HIGH_CURRENT) || pbsys_status_test(PBIO_PYBRICKS_STATUS_BATTERY_HIGH_TEMP_WARNING)) {
         warning_indication = PBSYS_STATUS_LIGHT_INDICATION_WARNING_HIGH_CURRENT;
     } else if (pbsys_status_test(PBIO_PYBRICKS_STATUS_BATTERY_LOW_VOLTAGE_WARNING)) {

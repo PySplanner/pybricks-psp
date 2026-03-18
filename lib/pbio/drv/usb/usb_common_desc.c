@@ -30,8 +30,8 @@ const pbdrv_usb_webusb_url_desc_union_t pbdrv_usb_webusb_landing_page = {
 };
 
 #define MS_20_REGISTRY_DATA_EXTRA_SZ                    \
-        2 + sizeof(PBDRV_USB_MS_20_REG_PROPERTY_NAME) +     \
-        2 + sizeof(PBDRV_USB_MS_20_REG_PROPERTY_VAL)
+    2 + sizeof(PBDRV_USB_MS_20_REG_PROPERTY_NAME) +     \
+    2 + sizeof(PBDRV_USB_MS_20_REG_PROPERTY_VAL)
 
 const pbdrv_usb_ms_20_desc_set_union_t pbdrv_usb_ms_20_desc_set = {
     .s = {

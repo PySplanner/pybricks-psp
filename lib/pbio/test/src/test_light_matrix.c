@@ -24,7 +24,7 @@
 #define IMAGE_DATA(...) (const uint8_t[DATA_SIZE]) {__VA_ARGS__}
 
 #define tt_want_light_matrix_data(...) \
-        tt_want_int_op(memcmp(test_light_matrix_set_pixel_last_brightness, \
+    tt_want_int_op(memcmp(test_light_matrix_set_pixel_last_brightness, \
     (const uint8_t[DATA_SIZE]) {__VA_ARGS__}, DATA_SIZE), ==, 0)
 
 static const uint8_t test_animation[] = {

@@ -51,7 +51,7 @@
 #define SET_BIAS_POT0() (0x81)
 #define SET_BIAS_POT1(pot) (pot & 0xFF)
 #define SET_RAM_ADDR_CONTROL(auto_wrap, page_first, neg_inc, write_only_inc) \
-        (0x88 | (auto_wrap << 0) | (page_first << 1) |                    \
+    (0x88 | (auto_wrap << 0) | (page_first << 1) |                    \
     (neg_inc << 2) | (write_only_inc << 3))
 #define SET_ALL_PIXELS_ON(on) (0xA4 | (on & 1))
 #define SET_INVERSE_DISPLAY(on) (0xA6 | (on & 1))

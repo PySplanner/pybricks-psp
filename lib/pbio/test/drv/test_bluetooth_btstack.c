@@ -53,10 +53,10 @@ static void queue_packet(const uint8_t *buffer, uint16_t length) {
 }
 
 #define queue_command_complete(opcode, ...) {                       \
-            static const uint8_t result[] = {                           \
-                __VA_ARGS__                                             \
-            };                                                          \
-            _queue_command_complete(opcode, result, sizeof(result));    \
+        static const uint8_t result[] = {                           \
+            __VA_ARGS__                                             \
+        };                                                          \
+        _queue_command_complete(opcode, result, sizeof(result));    \
 }
 
 static void _queue_command_complete(uint16_t opcode, const uint8_t *result, uint16_t length) {

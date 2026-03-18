@@ -14,11 +14,11 @@
 
 // Use this macro to define tests that _don't_ require the pbio/os event loop
 #define PBIO_TEST(name) \
-        { #name, name, TT_FORK, NULL, NULL }
+    { #name, name, TT_FORK, NULL, NULL }
 
 // Use this macro to define tests that _do_ require the pbio/os event loop
 #define PBIO_THREAD_TEST(name) \
-        { #name, pbio_test_run_thread, TT_FORK, &pbio_test_setup, name }
+    { #name, pbio_test_run_thread, TT_FORK, &pbio_test_setup, name }
 
 void pbio_test_run_thread(void *env);
 

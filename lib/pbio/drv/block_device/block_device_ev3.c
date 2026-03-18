@@ -710,14 +710,14 @@ static pbio_error_t pbdrv_block_device_write_disk(pbio_os_state_t *state, const 
 //
 // NOTE: CSHOLD is *not* set here, so that CS is deasserted between each 16-bit unit
 #define MANUAL_ADC_CHANNEL(x)                                                       \
-        (1 << 26) |                                                                     \
-        (SPI_SPIDAT1_DFSEL_FORMAT1 << SPI_SPIDAT1_DFSEL_SHIFT) |                        \
-        (0 << (SPI_SPIDAT1_CSNR_SHIFT + PBDRV_EV3_SPI0_ADC_CS)) |                       \
-        (1 << (SPI_SPIDAT1_CSNR_SHIFT + PBDRV_EV3_SPI0_FLASH_CS)) |                     \
-        (1 << 12) |                                                                     \
-        (1 << 11) |                                                                     \
-        (((x) & 0xf) << 7) |                                                            \
-        (1 << 6)
+    (1 << 26) |                                                                     \
+    (SPI_SPIDAT1_DFSEL_FORMAT1 << SPI_SPIDAT1_DFSEL_SHIFT) |                        \
+    (0 << (SPI_SPIDAT1_CSNR_SHIFT + PBDRV_EV3_SPI0_ADC_CS)) |                       \
+    (1 << (SPI_SPIDAT1_CSNR_SHIFT + PBDRV_EV3_SPI0_FLASH_CS)) |                     \
+    (1 << 12) |                                                                     \
+    (1 << 11) |                                                                     \
+    (((x) & 0xf) << 7) |                                                            \
+    (1 << 6)
 
 #define PBDRV_ADC_EV3_NUM_DELAY_SAMPLES (2)
 

@@ -709,7 +709,7 @@ static void usb_device_intr(void) {
                     }
 
                     switch (setup_pkt.s.bRequest) {
-                    const char *s;
+                        const char *s;
 
                         case PBIO_PYBRICKS_USB_INTERFACE_READ_CHARACTERISTIC_GATT:
                             // Standard GATT characteristic

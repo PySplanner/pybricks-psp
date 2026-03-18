@@ -26,7 +26,7 @@ typedef struct _pbio_color_light_t pbio_color_light_t;
  * @param [in]  value       The brightness (0 to 100)
  */
 #define PBIO_COLOR_LIGHT_ANIMATION_CELL(hue, saturation, value) \
-        { .h = (hue), .s = (saturation), .v = (value) }
+    { .h = (hue), .s = (saturation), .v = (value) }
 
 /** Sentinel value for a color light animation array. */
 #define PBIO_COLOR_LIGHT_ANIMATION_END_V (INT8_MAX)

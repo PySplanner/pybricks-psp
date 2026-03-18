@@ -27,10 +27,10 @@
 //
 // The following macro helps construct these structs
 #define PBDRV_USB_TYPE_PUNNING_HELPER(type)                                     \
-        typedef union {                                                                 \
-            type##_t s;                                                                 \
-            uint32_t u[(sizeof(type##_t) + sizeof(uint32_t) - 1) / sizeof(uint32_t)];   \
-        } type##_union_t;
+    typedef union {                                                                 \
+        type##_t s;                                                                 \
+        uint32_t u[(sizeof(type##_t) + sizeof(uint32_t) - 1) / sizeof(uint32_t)];   \
+    } type##_union_t;
 
 // SETUP transaction packet structure
 typedef struct {
@@ -205,10 +205,10 @@ typedef struct PBDRV_PACKED {
 
 // {3408b638-09a9-47a0-8bfd-a0768815b665}
 #define USB_PLATFORM_CAP_GUID_WEBUSB    {                           \
-            .u0 = 0x3408b638,                                           \
-            .u1 = 0x09a9,                                               \
-            .u2 = 0x47a0,                                               \
-            .u3 = {0x8b, 0xfd, 0xa0, 0x76, 0x88, 0x15, 0xb6, 0x65},     \
+        .u0 = 0x3408b638,                                           \
+        .u1 = 0x09a9,                                               \
+        .u2 = 0x47a0,                                               \
+        .u3 = {0x8b, 0xfd, 0xa0, 0x76, 0x88, 0x15, 0xb6, 0x65},     \
 }
 
 typedef struct PBDRV_PACKED {
@@ -221,10 +221,10 @@ typedef struct PBDRV_PACKED {
 
 // {D8DD60DF-4589-4CC7-9CD2-659D9E648A9F}
 #define USB_PLATFORM_CAP_GUID_MS_20     {                           \
-            .u0 = 0xD8DD60DF,                                           \
-            .u1 = 0x4589,                                               \
-            .u2 = 0x4CC7,                                               \
-            .u3 = {0x9C, 0xD2, 0x65, 0x9D, 0x9E, 0x64, 0x8A, 0x9F},     \
+        .u0 = 0xD8DD60DF,                                           \
+        .u1 = 0x4589,                                               \
+        .u2 = 0x4CC7,                                               \
+        .u3 = {0x9C, 0xD2, 0x65, 0x9D, 0x9E, 0x64, 0x8A, 0x9F},     \
 }
 
 // These are not technically part of USB Chapter 9, but

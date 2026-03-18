@@ -36,7 +36,7 @@ enum {
 };
 
 #define PBDRV_RPROC_EV3_PRU1_I2C_PACK_FLAGS(daddr, rlen, wlen, flags)   \
-        ((((daddr) & 0xff) << 24) |                                         \
+    ((((daddr) & 0xff) << 24) |                                         \
     (((rlen) & 0xff) << 16) |                                           \
     (((wlen) & 0xff) << 8) |                                            \
     ((flags) & 0xff))

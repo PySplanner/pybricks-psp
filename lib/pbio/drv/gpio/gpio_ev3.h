@@ -30,15 +30,15 @@ typedef struct {
  * @param PIN The GPIO pin ID (zero-based).
  */
 #define PBDRV_GPIO_EV3_PIN(MUX, HIGH, LOW, BANK, PIN) \
-        { \
-            .bank = &(pbdrv_gpio_ev3_mux_t) { \
-                .mux_id = MUX, \
-                .mux_mask = SYSCFG_PINMUX##MUX##_PINMUX##MUX##_##HIGH##_##LOW, \
-                .mux_shift = SYSCFG_PINMUX##MUX##_PINMUX##MUX##_##HIGH##_##LOW##_SHIFT, \
-                .gpio_bank_id = BANK, \
-                .gpio_mode = SYSCFG_PINMUX##MUX##_PINMUX##MUX##_##HIGH##_##LOW##_GPIO##BANK##_##PIN, \
-            }, \
-            .pin = PIN, \
-        } \
+    { \
+        .bank = &(pbdrv_gpio_ev3_mux_t) { \
+            .mux_id = MUX, \
+            .mux_mask = SYSCFG_PINMUX##MUX##_PINMUX##MUX##_##HIGH##_##LOW, \
+            .mux_shift = SYSCFG_PINMUX##MUX##_PINMUX##MUX##_##HIGH##_##LOW##_SHIFT, \
+            .gpio_bank_id = BANK, \
+            .gpio_mode = SYSCFG_PINMUX##MUX##_PINMUX##MUX##_##HIGH##_##LOW##_GPIO##BANK##_##PIN, \
+        }, \
+        .pin = PIN, \
+    } \
 
 #endif // _INTERNAL_GPIO_TIAM1808_H_

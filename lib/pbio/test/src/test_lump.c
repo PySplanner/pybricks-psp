@@ -25,7 +25,7 @@
 // TODO: submit this upstream
 #ifndef tt_want_float_op
 #define tt_want_float_op(a, op, b) \
-        tt_assert_test_type(a, b,#a " "#op " "#b, float, (val1_ op val2_), "%f", (void)0)
+    tt_assert_test_type(a, b,#a " "#op " "#b, float, (val1_ op val2_), "%f", (void)0)
 #endif
 
 struct _pbdrv_uart_dev_t {
@@ -99,13 +99,13 @@ end:
 }
 
 #define SIMULATE_RX_MSG(msg) do { \
-            PBIO_OS_AWAIT(state, &child, err = simulate_rx_msg(&child, (msg), PBIO_ARRAY_SIZE(msg))); \
-            tt_assert_msg(err == PBIO_SUCCESS, #msg); \
+        PBIO_OS_AWAIT(state, &child, err = simulate_rx_msg(&child, (msg), PBIO_ARRAY_SIZE(msg))); \
+        tt_assert_msg(err == PBIO_SUCCESS, #msg); \
 } while (0)
 
 #define SIMULATE_TX_MSG(msg) do { \
-            PBIO_OS_AWAIT(state, &child, err = simulate_tx_msg(&child, (msg), PBIO_ARRAY_SIZE(msg))); \
-            tt_assert_msg(err == PBIO_SUCCESS, #msg); \
+        PBIO_OS_AWAIT(state, &child, err = simulate_tx_msg(&child, (msg), PBIO_ARRAY_SIZE(msg))); \
+        tt_assert_msg(err == PBIO_SUCCESS, #msg); \
 } while (0)
 
 static const uint8_t msg_speed_115200[] = { 0x52, 0x00, 0xC2, 0x01, 0x00, 0x6E }; // SPEED 115200
