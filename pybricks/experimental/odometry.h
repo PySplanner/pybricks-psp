@@ -3,7 +3,8 @@
 
 #include "py/obj.h"
 
-// The signature must use float to match the core and avoid double-promotion errors
-mp_obj_t calculate_odometry(int num_iters, float wheel_circ, float axle_track, mp_obj_t right_angle_func, mp_obj_t left_angle_func);
+// Background update hooks
+void pb_background_odometry_update(void);
+void pb_background_pursuit_update(void);
 
-#endif // PYBRICKS_EXPERIMENTAL_ODOMETRY_H
+#endif

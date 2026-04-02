@@ -20,6 +20,7 @@
 // Bring in our background hook
 #if PYBRICKS_PY_EXPERIMENTAL
 extern void pb_background_odometry_update(void);
+extern void pb_background_pursuit_update(void); // Add this
 #endif
 
 // Core delay function that does an efficient sleep and may switch thread context.
@@ -37,6 +38,7 @@ void mp_hal_delay_ms(mp_uint_t Delay) {
         // ---> EXPERIMENTAL ODOMETRY HOOK <---
         #if PYBRICKS_PY_EXPERIMENTAL
         pb_background_odometry_update();
+        pb_background_pursuit_update();
         #endif
 
     } while (pbdrv_clock_get_ms() - start < Delay);
