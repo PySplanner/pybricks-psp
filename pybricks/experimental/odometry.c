@@ -11,6 +11,7 @@
 #include <pbio/servo.h>
 #include "pybricks/experimental/odometry.h"
 #include "pybricks/experimental/platform_math.h"
+#include <pybricks/pupdevices.h>
 
 // Hardware Pointers
 static pbio_servo_t *left_servo_ptr = NULL;
@@ -92,8 +93,8 @@ void pb_background_pursuit_update(void) {
 
 // start_odometry(left_m, right_m, mm_per_deg, track, x, y, h)
 mp_obj_t experimental_start_odometry(size_t n_args, const mp_obj_t *args) {
-    left_servo_ptr = ((pb_type_Motor_obj_t *)MP_OBJ_TO_PTR(args[0]))->srv;
-    right_servo_ptr = ((pb_type_Motor_obj_t *)MP_OBJ_TO_PTR(args[1]))->srv;
+left_servo_ptr = ((pb_type_pupdevices_Motor_obj_t *)MP_OBJ_TO_PTR(args[0]))->servo;
+right_servo_ptr = ((pb_type_pupdevices_Motor_obj_t *)MP_OBJ_TO_PTR(args[1]))->servo;
     odom_deg_to_mm = mp_obj_get_float(args[2]) / 360.0f;
     odom_inv_track = 1.0f / mp_obj_get_float(args[3]);
     global_x = mp_obj_get_float(args[4]);
