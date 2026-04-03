@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include "py/mpconfig.h"
 
-// This must match the flag in your mpconfigport.h
 #if PYBRICKS_PY_EXPERIMENTAL
 
 #include "py/mphal.h"
@@ -16,18 +15,16 @@
 #include "pybricks/experimental/odometry.h"
 #include "pybricks/experimental/platform_math.h"
 
-// --- THE FIX: Forward declare the Motor Object structure ---
+// Hardware Object structure declaration
 typedef struct _pb_type_pupdevices_Motor_obj_t {
     mp_obj_base_t base;
     pbio_servo_t *srv; 
 } pb_type_pupdevices_Motor_obj_t;
-// -----------------------------------------------------------
 
-// Hardware Pointers
+// State Variables
 static pbio_servo_t *left_servo_ptr = NULL;
 static pbio_servo_t *right_servo_ptr = NULL;
 
-// Odometry State
 volatile bool odom_running = false;
 volatile uint32_t last_odom_time_ms = 0;
 volatile float global_x = 0.0f, global_y = 0.0f, global_h = 0.0f;
@@ -35,16 +32,10 @@ volatile int32_t last_left_angle = 0, last_right_angle = 0;
 float odom_deg_to_mm = 1.0f;
 float odom_inv_track = 1.0f;
 
-// Pursuit / Spline State
 volatile bool pursuit_running = false;
 volatile float p_target_speed = 0.0f;
 volatile float p_lookahead = 120.0f;
-
-// Spline Coefficients for y = ax^3 + bx^2 + cx + d
-volatile float sp_a = 0.0f, sp_b = 0.0f, sp_c = 0.0f, sp_d = 0.0f;
-volatile float sp_x_end = 0.0f;
-
-// --- Background Updates ---
+volatile float sp_a = 0.0f, sp_b = 0.0f, sp_c = 0.0f, sp_d = 0.0f, sp_x_end = 0.0f;
 
 void pb_background_odometry_update(void) {
     if (!odom_running || !left_servo_ptr || !right_servo_ptr) return;
@@ -71,6 +62,9 @@ void pb_background_odometry_update(void) {
         global_y += dD * pb_fast_sin(avg_h);
         global_h += dH;
 
+        while (global_h > 3.14159f) global_h -= 6.28318f;
+        while (global_h < -3.14159f) global_h += 6.28318f;
+
         last_left_angle = cur_l;
         last_right_angle = cur_r;
     }
@@ -88,38 +82,32 @@ void pb_background_pursuit_update(void) {
 
     float target_x = global_x + p_lookahead;
     if (target_x > sp_x_end) target_x = sp_x_end;
-
-    float tx2 = target_x * target_x;
-    float tx3 = tx2 * target_x;
-    float target_y = (sp_a * tx3) + (sp_b * tx2) + (sp_c * target_x) + sp_d;
+    
+    float target_y = (sp_a * (target_x * target_x * target_x)) + 
+                     (sp_b * (target_x * target_x)) + 
+                     (sp_c * target_x) + sp_d;
 
     float x_dif = target_x - global_x;
     float y_dif = target_y - global_y;
+    float relative_y = (y_dif * pb_fast_cos(global_h)) - (x_dif * pb_fast_sin(global_h));
     float dist_sq = (x_dif * x_dif) + (y_dif * y_dif);
 
-    float relative_y = (y_dif * pb_fast_cos(global_h)) - (x_dif * pb_fast_sin(global_h));
-
-    float m_left = 1.0f;
-    float m_right = 1.0f;
-
+    float m_left = 1.0f, m_right = 1.0f;
     if (relative_y > 0.001f || relative_y < -0.001f) {
         float radius = -(dist_sq / (2.0f * relative_y));
-        float two_r = 2.0f * radius;
         float track = 1.0f / odom_inv_track;
-        m_right = two_r / (two_r + track);
-        m_left = two_r / (two_r - track);
+        m_right = (2.0f * radius) / ((2.0f * radius) + track);
+        m_left = (2.0f * radius) / ((2.0f * radius) - track);
     }
 
     pbio_servo_run_forever(left_servo_ptr, (int32_t)(p_target_speed * m_left));
     pbio_servo_run_forever(right_servo_ptr, (int32_t)(p_target_speed * m_right));
 }
 
-// --- MicroPython API ---
-
+// MicroPython Wrappers
 mp_obj_t experimental_start_odometry(size_t n_args, const mp_obj_t *args) {
     left_servo_ptr = ((pb_type_pupdevices_Motor_obj_t *)MP_OBJ_TO_PTR(args[0]))->srv;
     right_servo_ptr = ((pb_type_pupdevices_Motor_obj_t *)MP_OBJ_TO_PTR(args[1]))->srv;
-
     odom_deg_to_mm = mp_obj_get_float(args[2]) / 360.0f;
     odom_inv_track = 1.0f / mp_obj_get_float(args[3]);
     global_x = mp_obj_get_float(args[4]);
@@ -142,11 +130,6 @@ mp_obj_t experimental_get_odometry(void) {
     return mp_obj_new_tuple(3, tuple);
 }
 
-mp_obj_t experimental_stop_odometry(void) {
-    odom_running = false;
-    return mp_const_none;
-}
-
 mp_obj_t experimental_start_pursuit(size_t n_args, const mp_obj_t *args) {
     sp_a = mp_obj_get_float(args[0]);
     sp_b = mp_obj_get_float(args[1]);
@@ -155,7 +138,6 @@ mp_obj_t experimental_start_pursuit(size_t n_args, const mp_obj_t *args) {
     sp_x_end = mp_obj_get_float(args[4]);
     p_target_speed = mp_obj_get_float(args[5]);
     p_lookahead = mp_obj_get_float(args[6]);
-
     pursuit_running = true;
     return mp_const_none;
 }
@@ -166,6 +148,11 @@ mp_obj_t experimental_stop_pursuit(void) {
         pbio_servo_stop(left_servo_ptr, PBIO_CONTROL_ON_COMPLETION_BRAKE);
         pbio_servo_stop(right_servo_ptr, PBIO_CONTROL_ON_COMPLETION_BRAKE);
     }
+    return mp_const_none;
+}
+
+mp_obj_t experimental_stop_odometry(void) {
+    odom_running = false;
     return mp_const_none;
 }
 
