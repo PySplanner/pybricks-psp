@@ -9,10 +9,12 @@
 
 #include <pybricks/common.h>
 #include <pbio/servo.h>
+#include <pbio/control.h>
 #include "pybricks/experimental/odometry.h"
 #include "pybricks/experimental/platform_math.h"
-#include <pybricks/pupdevices.h>
-#include <pybricks/pupdevices/motor.h>
+
+// Internal Pybricks motor structures
+#include "pybricks/pupdevices/pb_type_pupdevices_motor.h"
 
 // Hardware Pointers
 static pbio_servo_t *left_servo_ptr = NULL;
@@ -38,7 +40,7 @@ volatile float sp_x_end = 0.0f;
 // --- Background Updates ---
 
 void pb_background_odometry_update(void) {
-    if (!odom_running) return;
+    if (!odom_running || !left_servo_ptr || !right_servo_ptr) return;
 
     uint32_t now = mp_hal_ticks_ms();
     if (now - last_odom_time_ms < 5) return;
@@ -70,32 +72,52 @@ void pb_background_odometry_update(void) {
 void pb_background_pursuit_update(void) {
     if (!pursuit_running || !left_servo_ptr || !right_servo_ptr) return;
 
-    // 1. PROJECT TARGET POINT
-    // Use sp_a, sp_b, sp_c, sp_d and p_lookahead to find target_x and target_y
-    //TODO
-    //float target_x = 0.0f; 
-    //float target_y = 0.0f;
+    // 1. Check Exit Condition (Reached end of spline)
+    if (global_x >= sp_x_end) {
+        pursuit_running = false;
+        pbio_servo_stop(left_servo_ptr, PBIO_CONTROL_ON_COMPLETION_BRAKE);
+        pbio_servo_stop(right_servo_ptr, PBIO_CONTROL_ON_COMPLETION_BRAKE);
+        return;
+    }
 
-    // 2. CHECK EXIT CONDITION
-    // Decide when to set pursuit_running = false (e.g. reaching sp_x_end)
+    // 2. Project Target Point
+    float target_x = global_x + p_lookahead;
+    if (target_x > sp_x_end) target_x = sp_x_end;
 
-    // 3. PURE PURSUIT MATH
-    // Calculate m_left and m_right based on target_x/y relative to global_x/y
+    float tx2 = target_x * target_x;
+    float tx3 = tx2 * target_x;
+    float target_y = (sp_a * tx3) + (sp_b * tx2) + (sp_c * target_x) + sp_d;
+
+    // 3. Pure Pursuit Math
+    float x_dif = target_x - global_x;
+    float y_dif = target_y - global_y;
+    float dist_sq = (x_dif * x_dif) + (y_dif * y_dif);
+
+    // Transform to local robot coordinates
+    float relative_y = (y_dif * pb_fast_cos(global_h)) - (x_dif * pb_fast_sin(global_h));
+
     float m_left = 1.0f;
     float m_right = 1.0f;
 
-    // 4. DRIVE
+    if (relative_y > 0.001f || relative_y < -0.001f) {
+        float radius = -(dist_sq / (2.0f * relative_y));
+        float two_r = 2.0f * radius;
+        float track = 1.0f / odom_inv_track;
+        m_right = two_r / (two_r + track);
+        m_left = two_r / (two_r - track);
+    }
+
+    // 4. Drive
     pbio_servo_run_forever(left_servo_ptr, (int32_t)(p_target_speed * m_left));
     pbio_servo_run_forever(right_servo_ptr, (int32_t)(p_target_speed * m_right));
-
 }
 
 // --- MicroPython API ---
 
-// start_odometry(left_m, right_m, mm_per_deg, track, x, y, h)
 mp_obj_t experimental_start_odometry(size_t n_args, const mp_obj_t *args) {
-left_servo_ptr = ((pb_type_Motor_obj_t *)MP_OBJ_TO_PTR(args[0]))->srv;
-right_servo_ptr = ((pb_type_Motor_obj_t *)MP_OBJ_TO_PTR(args[1]))->srv;
+    left_servo_ptr = ((pb_type_pupdevices_Motor_obj_t *)MP_OBJ_TO_PTR(args[0]))->srv;
+    right_servo_ptr = ((pb_type_pupdevices_Motor_obj_t *)MP_OBJ_TO_PTR(args[1]))->srv;
+
     odom_deg_to_mm = mp_obj_get_float(args[2]) / 360.0f;
     odom_inv_track = 1.0f / mp_obj_get_float(args[3]);
     global_x = mp_obj_get_float(args[4]);
@@ -119,7 +141,6 @@ mp_obj_t experimental_stop_odometry(void) {
     return mp_const_none;
 }
 
-// NEW API: start_spline(a, b, c, d, x_end, speed, lookahead)
 mp_obj_t experimental_start_pursuit(size_t n_args, const mp_obj_t *args) {
     sp_a = mp_obj_get_float(args[0]);
     sp_b = mp_obj_get_float(args[1]);
@@ -140,7 +161,6 @@ mp_obj_t experimental_stop_pursuit(void) {
         pbio_servo_stop(right_servo_ptr, PBIO_CONTROL_ON_COMPLETION_BRAKE);
     }
     return mp_const_none;
-    
 }
 
 #endif
