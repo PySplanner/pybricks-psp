@@ -12,6 +12,7 @@
 #include "pybricks/experimental/odometry.h"
 #include "pybricks/experimental/platform_math.h"
 #include <pybricks/pupdevices.h>
+#include "../pupdevices/pb_type_pupdevices_motor.h"
 
 // Hardware Pointers
 static pbio_servo_t *left_servo_ptr = NULL;
