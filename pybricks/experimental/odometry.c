@@ -1,20 +1,17 @@
 // SPDX-License-Identifier: MIT
-#include "py/mpconfig.h"
-
-#if PYBRICKS_PY_EXPERIMENTAL
-
-#include "py/mphal.h"
-#include "py/runtime.h"
-#include <math.h>
-
 #include <pybricks/common.h>
 #include <pbio/servo.h>
 #include <pbio/control.h>
 #include "pybricks/experimental/odometry.h"
 #include "pybricks/experimental/platform_math.h"
 
-// Internal Pybricks motor structures
-#include "pybricks/pupdevices/pb_type_pupdevices_motor.h"
+// --- THE FIX: Forward declare the Motor Object structure ---
+// This replaces the #include "pybricks/pupdevices/pb_type_pupdevices_motor.h"
+typedef struct _pb_type_pupdevices_Motor_obj_t {
+    mp_obj_base_t base;
+    pbio_servo_t *srv; // In some versions this is 'servo'
+} pb_type_pupdevices_Motor_obj_t;
+// -----------------------------------------------------------
 
 // Hardware Pointers
 static pbio_servo_t *left_servo_ptr = NULL;
