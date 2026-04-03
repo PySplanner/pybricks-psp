@@ -79,8 +79,8 @@ void pb_background_pursuit_update(void) {
 
     // 3. PURE PURSUIT MATH
     // Calculate m_left and m_right based on target_x/y relative to global_x/y
-    //float m_left = 1.0f;
-    //float m_right = 1.0f;
+    float m_left = 1.0f;
+    float m_right = 1.0f;
 
     // 4. DRIVE
     pbio_servo_run_forever(left_servo_ptr, (int32_t)(p_target_speed * m_left));
