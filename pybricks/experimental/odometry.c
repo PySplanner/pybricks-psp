@@ -24,10 +24,14 @@ volatile int32_t last_left_angle = 0, last_right_angle = 0;
 float odom_deg_to_mm = 1.0f;
 float odom_inv_track = 1.0f;
 
-// Pursuit State
+// Pursuit / Spline State
 volatile bool pursuit_running = false;
-volatile float p_target_x = 0.0f, p_target_y = 0.0f, p_target_speed = 0.0f;
-volatile float p_stop_threshold_sq = 400.0f;
+volatile float p_target_speed = 0.0f;
+volatile float p_lookahead = 120.0f;
+
+// Spline Coefficients for y = ax^3 + bx^2 + cx + d
+volatile float sp_a = 0.0f, sp_b = 0.0f, sp_c = 0.0f, sp_d = 0.0f;
+volatile float sp_x_end = 0.0f;
 
 // --- Background Updates ---
 
@@ -64,34 +68,27 @@ void pb_background_odometry_update(void) {
 void pb_background_pursuit_update(void) {
     if (!pursuit_running || !left_servo_ptr || !right_servo_ptr) return;
 
-    float x_dif = p_target_x - global_x;
-    float y_dif = p_target_y - global_y;
-    float dist_sq = (x_dif * x_dif) + (y_dif * y_dif);
+    // 1. PROJECT TARGET POINT
+    // Use sp_a, sp_b, sp_c, sp_d and p_lookahead to find target_x and target_y
+    float target_x = 0.0f; 
+    float target_y = 0.0f;
 
-    if (dist_sq < p_stop_threshold_sq) {
-        pursuit_running = false;
-        pbio_servo_stop(left_servo_ptr, PBIO_CONTROL_STOP_BRAKE);
-        pbio_servo_stop(right_servo_ptr, PBIO_CONTROL_STOP_BRAKE);
-        return;
-    }
+    // 2. CHECK EXIT CONDITION
+    // Decide when to set pursuit_running = false (e.g. reaching sp_x_end)
 
-    float relative_y = (y_dif * pb_fast_cos(global_h)) - (x_dif * pb_fast_sin(global_h));
-    float m_left = 1.0f, m_right = 1.0f;
+    // 3. PURE PURSUIT MATH
+    // Calculate m_left and m_right based on target_x/y relative to global_x/y
+    float m_left = 1.0f;
+    float m_right = 1.0f;
 
-    if (relative_y > 0.001f || relative_y < -0.001f) {
-        float radius = -(dist_sq / (2.0f * relative_y));
-        float two_r = 2.0f * radius;
-        float track = 1.0f / odom_inv_track;
-        m_right = two_r / (two_r + track);
-        m_left = two_r / (two_r - track);
-    }
-
+    // 4. DRIVE
     pbio_servo_run_velocity(left_servo_ptr, (int32_t)(p_target_speed * m_left));
     pbio_servo_run_velocity(right_servo_ptr, (int32_t)(p_target_speed * m_right));
 }
 
 // --- MicroPython API ---
 
+// start_odometry(left_m, right_m, mm_per_deg, track, x, y, h)
 mp_obj_t experimental_start_odometry(size_t n_args, const mp_obj_t *args) {
     left_servo_ptr = ((pb_type_Motor_obj_t *)MP_OBJ_TO_PTR(args[0]))->srv;
     right_servo_ptr = ((pb_type_Motor_obj_t *)MP_OBJ_TO_PTR(args[1]))->srv;
@@ -118,12 +115,16 @@ mp_obj_t experimental_stop_odometry(void) {
     return mp_const_none;
 }
 
-mp_obj_t experimental_start_pursuit(size_t n_args, const mp_obj_t *args) {
-    p_target_x = mp_obj_get_float(args[0]);
-    p_target_y = mp_obj_get_float(args[1]);
-    p_target_speed = mp_obj_get_float(args[2]);
-    float thresh = mp_obj_get_float(args[3]);
-    p_stop_threshold_sq = thresh * thresh;
+// NEW API: start_spline(a, b, c, d, x_end, speed, lookahead)
+mp_obj_t experimental_start_spline(size_t n_args, const mp_obj_t *args) {
+    sp_a = mp_obj_get_float(args[0]);
+    sp_b = mp_obj_get_float(args[1]);
+    sp_c = mp_obj_get_float(args[2]);
+    sp_d = mp_obj_get_float(args[3]);
+    sp_x_end = mp_obj_get_float(args[4]);
+    p_target_speed = mp_obj_get_float(args[5]);
+    p_lookahead = mp_obj_get_float(args[6]);
+
     pursuit_running = true;
     return mp_const_none;
 }
