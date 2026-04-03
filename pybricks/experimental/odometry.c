@@ -70,20 +70,22 @@ void pb_background_pursuit_update(void) {
 
     // 1. PROJECT TARGET POINT
     // Use sp_a, sp_b, sp_c, sp_d and p_lookahead to find target_x and target_y
-    float target_x = 0.0f; 
-    float target_y = 0.0f;
+    //TODO
+    //float target_x = 0.0f; 
+    //float target_y = 0.0f;
 
     // 2. CHECK EXIT CONDITION
     // Decide when to set pursuit_running = false (e.g. reaching sp_x_end)
 
     // 3. PURE PURSUIT MATH
     // Calculate m_left and m_right based on target_x/y relative to global_x/y
-    float m_left = 1.0f;
-    float m_right = 1.0f;
+    //float m_left = 1.0f;
+    //float m_right = 1.0f;
 
     // 4. DRIVE
-    pbio_servo_run_velocity(left_servo_ptr, (int32_t)(p_target_speed * m_left));
-    pbio_servo_run_velocity(right_servo_ptr, (int32_t)(p_target_speed * m_right));
+    pbio_servo_run_forever(left_servo_ptr, (int32_t)(p_target_speed * m_left));
+    pbio_servo_run_forever(right_servo_ptr, (int32_t)(p_target_speed * m_right));
+
 }
 
 // --- MicroPython API ---
@@ -132,10 +134,11 @@ mp_obj_t experimental_start_spline(size_t n_args, const mp_obj_t *args) {
 mp_obj_t experimental_stop_pursuit(void) {
     pursuit_running = false;
     if (left_servo_ptr && right_servo_ptr) {
-        pbio_servo_stop(left_servo_ptr, PBIO_CONTROL_STOP_BRAKE);
-        pbio_servo_stop(right_servo_ptr, PBIO_CONTROL_STOP_BRAKE);
+        pbio_servo_stop(left_servo_ptr, PBIO_CONTROL_ON_COMPLETION_BRAKE);
+        pbio_servo_stop(right_servo_ptr, PBIO_CONTROL_ON_COMPLETION_BRAKE);
     }
     return mp_const_none;
+    
 }
 
 #endif

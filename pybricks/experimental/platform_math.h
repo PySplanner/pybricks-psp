@@ -43,16 +43,18 @@ static inline float pb_fast_cos(float theta) {
 // skrauzys nightmare ^1.2
 // ---------------------------------------------------------
 
-// use 1 newton iteration without division, using x^1.2 = x^2 * (x^-0.2)^4
 static inline float pb_fast_pow_1_2_ultra(float x) {
-    // protect against zero
     if (x > -0.0001f && x < 0.0001f) return 0.0f;
 
-    uint32_t i = *(uint32_t*)&x;              // evil floating point bit level hacking
+    union { float f; uint32_t i; } conv;
+    conv.f = x;
+
+    uint32_t i = conv.i & 0x7FFFFFFF;         // evil floating point bit level hacking
     i &= 0x7FFFFFFF;                          // absolute value
 
     uint32_t iy = 1278004968 - (i / 5);       // what the fuck?
-    float y = *(float*)&iy;
+    conv.i = iy;
+    float y = conv.f;
 
     float y2 = y * y;
     float y4 = y2 * y2;
@@ -60,7 +62,6 @@ static inline float pb_fast_pow_1_2_ultra(float x) {
     float y_new = y * (1.2f - 0.2f * x * y5); // 1st iteration
     // y_new = y_new * ( ... );               // 2nd iteration, this can be removed
 
-    //apply x^1.2 = x^2 * (x^-0.2)^4
     float yn2 = y_new * y_new;
     float yn4 = yn2 * yn2;
     float x2 = x * x;
