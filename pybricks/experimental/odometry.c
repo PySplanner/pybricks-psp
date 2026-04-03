@@ -118,7 +118,7 @@ mp_obj_t experimental_stop_odometry(void) {
 }
 
 // NEW API: start_spline(a, b, c, d, x_end, speed, lookahead)
-mp_obj_t experimental_start_spline(size_t n_args, const mp_obj_t *args) {
+mp_obj_t experimental_start_pursuit(size_t n_args, const mp_obj_t *args) {
     sp_a = mp_obj_get_float(args[0]);
     sp_b = mp_obj_get_float(args[1]);
     sp_c = mp_obj_get_float(args[2]);
