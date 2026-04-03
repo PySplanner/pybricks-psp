@@ -1,4 +1,15 @@
 // SPDX-License-Identifier: MIT
+#include "py/mpconfig.h"
+
+// This must match the flag in your mpconfigport.h
+#if PYBRICKS_PY_EXPERIMENTAL
+
+#include "py/mphal.h"
+#include "py/runtime.h"
+#include <math.h>
+#include <stdint.h>
+#include <stdbool.h>
+
 #include <pybricks/common.h>
 #include <pbio/servo.h>
 #include <pbio/control.h>
@@ -6,10 +17,9 @@
 #include "pybricks/experimental/platform_math.h"
 
 // --- THE FIX: Forward declare the Motor Object structure ---
-// This replaces the #include "pybricks/pupdevices/pb_type_pupdevices_motor.h"
 typedef struct _pb_type_pupdevices_Motor_obj_t {
     mp_obj_base_t base;
-    pbio_servo_t *srv; // In some versions this is 'servo'
+    pbio_servo_t *srv; 
 } pb_type_pupdevices_Motor_obj_t;
 // -----------------------------------------------------------
 
@@ -69,7 +79,6 @@ void pb_background_odometry_update(void) {
 void pb_background_pursuit_update(void) {
     if (!pursuit_running || !left_servo_ptr || !right_servo_ptr) return;
 
-    // 1. Check Exit Condition (Reached end of spline)
     if (global_x >= sp_x_end) {
         pursuit_running = false;
         pbio_servo_stop(left_servo_ptr, PBIO_CONTROL_ON_COMPLETION_BRAKE);
@@ -77,7 +86,6 @@ void pb_background_pursuit_update(void) {
         return;
     }
 
-    // 2. Project Target Point
     float target_x = global_x + p_lookahead;
     if (target_x > sp_x_end) target_x = sp_x_end;
 
@@ -85,12 +93,10 @@ void pb_background_pursuit_update(void) {
     float tx3 = tx2 * target_x;
     float target_y = (sp_a * tx3) + (sp_b * tx2) + (sp_c * target_x) + sp_d;
 
-    // 3. Pure Pursuit Math
     float x_dif = target_x - global_x;
     float y_dif = target_y - global_y;
     float dist_sq = (x_dif * x_dif) + (y_dif * y_dif);
 
-    // Transform to local robot coordinates
     float relative_y = (y_dif * pb_fast_cos(global_h)) - (x_dif * pb_fast_sin(global_h));
 
     float m_left = 1.0f;
@@ -104,7 +110,6 @@ void pb_background_pursuit_update(void) {
         m_left = two_r / (two_r - track);
     }
 
-    // 4. Drive
     pbio_servo_run_forever(left_servo_ptr, (int32_t)(p_target_speed * m_left));
     pbio_servo_run_forever(right_servo_ptr, (int32_t)(p_target_speed * m_right));
 }
@@ -129,7 +134,11 @@ mp_obj_t experimental_start_odometry(size_t n_args, const mp_obj_t *args) {
 }
 
 mp_obj_t experimental_get_odometry(void) {
-    mp_obj_t tuple[3] = { mp_obj_new_float_from_f(global_x), mp_obj_new_float_from_f(global_y), mp_obj_new_float_from_f(global_h) };
+    mp_obj_t tuple[3] = { 
+        mp_obj_new_float_from_f(global_x), 
+        mp_obj_new_float_from_f(global_y), 
+        mp_obj_new_float_from_f(global_h) 
+    };
     return mp_obj_new_tuple(3, tuple);
 }
 
@@ -160,4 +169,4 @@ mp_obj_t experimental_stop_pursuit(void) {
     return mp_const_none;
 }
 
-#endif
+#endif // PYBRICKS_PY_EXPERIMENTAL
