@@ -27,6 +27,8 @@ static pbio_servo_t *right_servo_ptr = NULL;
 
 volatile bool odom_running = false;
 volatile uint32_t last_odom_time_ms = 0;
+volatile uint32_t last_pursuit_time_ms = 0;
+
 volatile float global_x = 0.0f, global_y = 0.0f, global_h = 0.0f;
 volatile int32_t last_left_angle = 0, last_right_angle = 0;
 float odom_deg_to_mm = 1.0f;
@@ -37,8 +39,32 @@ volatile float p_target_speed = 0.0f;
 volatile float p_lookahead = 120.0f;
 volatile float sp_a = 0.0f, sp_b = 0.0f, sp_c = 0.0f, sp_d = 0.0f, sp_x_end = 0.0f;
 
+// FPS Counter Variables
+volatile uint32_t vm_loop_counter = 0;
+volatile uint32_t current_fps = 0;
+volatile uint32_t last_fps_time_ms = 0;
+
 void pb_background_odometry_update(void) {
-    if (!odom_running || !left_servo_ptr || !right_servo_ptr) return;
+    if (!odom_running) return;
+
+    // --- FPS COUNTER LOGIC ---
+    vm_loop_counter++;
+    uint32_t now = mp_hal_ticks_ms();
+    
+    // Every 1000ms, save the count and reset
+    if (now - last_fps_time_ms >= 1000) {
+        current_fps = vm_loop_counter;
+        vm_loop_counter = 0;
+        last_fps_time_ms = now;
+    }
+    // -------------------------
+
+    if (!left_servo_ptr || !right_servo_ptr) return;
+
+    // --- RATE CAP: 200 Hz (5ms) ---
+    if (now - last_odom_time_ms < 5) return;
+    last_odom_time_ms = now;
+    // ------------------------------
 
     int32_t cur_l, cur_r, unused_rate;
     pbio_servo_get_state_user(left_servo_ptr, &cur_l, &unused_rate);
@@ -70,6 +96,12 @@ void pb_background_odometry_update(void) {
 
 void pb_background_pursuit_update(void) {
     if (!pursuit_running || !left_servo_ptr || !right_servo_ptr) return;
+
+    // --- RATE CAP: 100 Hz (10ms) ---
+    uint32_t now = mp_hal_ticks_ms();
+    if (now - last_pursuit_time_ms < 10) return;
+    last_pursuit_time_ms = now;
+    // -------------------------------
 
     if (global_x >= sp_x_end) {
         pursuit_running = false;
@@ -156,6 +188,10 @@ mp_obj_t experimental_stop_pursuit(void) {
 mp_obj_t experimental_stop_odometry(void) {
     odom_running = false;
     return mp_const_none;
+}
+
+mp_obj_t experimental_get_fps(void) {
+    return mp_obj_new_int_from_uint(current_fps);
 }
 
 #endif // PYBRICKS_PY_EXPERIMENTAL
