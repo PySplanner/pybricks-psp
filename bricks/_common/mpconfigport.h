@@ -155,13 +155,19 @@ typedef long mp_off_t;
 #define PYBRICKS_VM_HOOK_LOOP_EXTRA
 #endif
 
+void pb_background_odometry_update(void);
+void pb_background_pursuit_update(void);
+
 #define MICROPY_VM_HOOK_LOOP \
     do { \
         PYBRICKS_VM_HOOK_LOOP_EXTRA \
         extern bool pbio_os_run_processes_once(void); \
         pbio_os_run_processes_once(); \
+        /* Call our experimental hooks every VM cycle */ \
+        pb_background_odometry_update(); \
+        pb_background_pursuit_update(); \
     } while (0);
-
+    
 #define MICROPY_GC_HOOK_LOOP(i) do { \
         if (((i) & 0xf) == 0) { \
             MICROPY_VM_HOOK_LOOP \
