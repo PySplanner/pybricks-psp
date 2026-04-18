@@ -169,6 +169,7 @@ PBIO_SRC_C = $(addprefix lib/pbio/,\
 	drv/pwm/pwm_core.c \
 	drv/pwm/pwm_ev3.c \
 	drv/pwm/pwm_lp50xx_stm32.c \
+	drv/pwm/pwm_pico.c \
 	drv/pwm/pwm_stm32_tim.c \
 	drv/pwm/pwm_test.c \
 	drv/pwm/pwm_tlc5955_stm32.c \
@@ -214,9 +215,6 @@ PBIO_SRC_C = $(addprefix lib/pbio/,\
 	src/drivebase.c \
 	src/error.c \
 	src/geometry.c \
-	src/image/font_liberationsans_regular_14.c \
-	src/image/font_terminus_normal_16.c \
-	src/image/font_mono_8x5_8.c \
 	src/image/image.c \
 	src/imu.c \
 	src/int_math.c \

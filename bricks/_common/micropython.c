@@ -290,22 +290,31 @@ static void run_user_program(void) {
 
 pbio_error_t pbsys_main_program_validate(pbsys_main_program_t *program) {
 
-    // For builtin programs, check requested ID against feature flags.
-    #if PBSYS_CONFIG_FEATURE_BUILTIN_USER_PROGRAM_REPL
-    if (program->id == PBIO_PYBRICKS_USER_PROGRAM_ID_REPL) {
-        return PBIO_SUCCESS;
+    // If requesting beyond a user slot, require that it is an available builtin.
+    if (program->id > (PBSYS_CONFIG_HMI_NUM_SLOTS ? PBSYS_CONFIG_HMI_NUM_SLOTS - 1 : 0)) {
+        switch (program->id) {
+            #if PBSYS_CONFIG_FEATURE_BUILTIN_USER_PROGRAM_REPL
+            case PBIO_PYBRICKS_USER_PROGRAM_ID_REPL:
+                return PBIO_SUCCESS;
+            #endif
+            #if PBSYS_CONFIG_FEATURE_BUILTIN_USER_PROGRAM_PORT_VIEW
+            case PBIO_PYBRICKS_USER_PROGRAM_ID_PORT_VIEW:
+                return PBIO_SUCCESS;
+            #endif
+            #if PBSYS_CONFIG_FEATURE_BUILTIN_USER_PROGRAM_IMU_CALIBRATION
+            case PBIO_PYBRICKS_USER_PROGRAM_ID_IMU_CALIBRATION:
+                return PBIO_SUCCESS;
+            #endif
+            #if PBSYS_CONFIG_FEATURE_BUILTIN_USER_PROGRAM_EV3_APPS
+            case PBIO_PYBRICKS_USER_PROGRAM_ID_EV3_MOTOR_BUTTON_CONTROL:
+            case PBIO_PYBRICKS_USER_PROGRAM_ID_EV3_MOTOR_IR_CONTROL:
+            case PBIO_PYBRICKS_USER_PROGRAM_ID_EV3_PORT_VIEW:
+                return PBIO_SUCCESS;
+            #endif
+            default:
+                return PBIO_ERROR_NOT_SUPPORTED;
+        }
     }
-    #endif
-    #if PBSYS_CONFIG_FEATURE_BUILTIN_USER_PROGRAM_PORT_VIEW
-    if (program->id == PBIO_PYBRICKS_USER_PROGRAM_ID_PORT_VIEW) {
-        return PBIO_SUCCESS;
-    }
-    #endif
-    #if PBSYS_CONFIG_FEATURE_BUILTIN_USER_PROGRAM_IMU_CALIBRATION
-    if (program->id == PBIO_PYBRICKS_USER_PROGRAM_ID_IMU_CALIBRATION) {
-        return PBIO_SUCCESS;
-    }
-    #endif
 
     // If requesting a user program, ensure that it exists and is valid.
     uint32_t program_size = program->code_end - program->code_start;
@@ -389,6 +398,21 @@ void pbsys_main_run_program(pbsys_main_program_t *program) {
         #if PBSYS_CONFIG_FEATURE_BUILTIN_USER_PROGRAM_IMU_CALIBRATION
         case PBIO_PYBRICKS_USER_PROGRAM_ID_IMU_CALIBRATION:
             // Todo
+            break;
+        #endif
+
+        #if PBSYS_CONFIG_FEATURE_BUILTIN_USER_PROGRAM_EV3_APPS
+        case PBIO_PYBRICKS_USER_PROGRAM_ID_EV3_MOTOR_BUTTON_CONTROL:
+            pb_package_pybricks_init(false);
+            pyexec_frozen_module("_ev3_motor_button_control.py", false);
+            break;
+        case PBIO_PYBRICKS_USER_PROGRAM_ID_EV3_MOTOR_IR_CONTROL:
+            pb_package_pybricks_init(false);
+            pyexec_frozen_module("_ev3_motor_ir_control.py", false);
+            break;
+        case PBIO_PYBRICKS_USER_PROGRAM_ID_EV3_PORT_VIEW:
+            pb_package_pybricks_init(false);
+            pyexec_frozen_module("_ev3_port_view.py", false);
             break;
         #endif
 
