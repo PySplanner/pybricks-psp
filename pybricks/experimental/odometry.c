@@ -29,6 +29,8 @@ volatile bool odom_running = false;
 volatile uint32_t last_odom_time_ms = 0;
 volatile uint32_t last_pursuit_time_ms = 0;
 
+volatile uint32_t fps = 200;
+volatile uint32_t mstowait = 5;
 volatile float global_x = 0.0f, global_y = 0.0f, global_h = 0.0f;
 volatile int32_t last_left_angle = 0, last_right_angle = 0;
 float odom_deg_to_mm = 1.0f;
@@ -60,7 +62,7 @@ void pb_background_odometry_update(void) {
     if (!left_servo_ptr || !right_servo_ptr) return;
 
     // --- RATE CAP: 200 Hz (5ms) ---
-    if (now - last_odom_time_ms < 5) return;
+    if (now - last_odom_time_ms < mstowait) return;
     last_odom_time_ms = now;
     // ------------------------------
     vm_loop_counter++;
@@ -97,7 +99,7 @@ void pb_background_pursuit_update(void) {
 
     // --- RATE CAP: 100 Hz (10ms) ---
     uint32_t now = mp_hal_ticks_ms();
-    if (now - last_pursuit_time_ms < 10) return;
+    if (now - last_pursuit_time_ms < mstowait) return;
     last_pursuit_time_ms = now;
     // -------------------------------
 
@@ -144,7 +146,9 @@ mp_obj_t experimental_start_odometry(size_t n_args, const mp_obj_t *args) {
     global_x = mp_obj_get_float(args[4]);
     global_y = mp_obj_get_float(args[5]);
     global_h = mp_obj_get_float(args[6]);
-
+    fps = mp_obj_get_int(args[7]);
+    
+    mstowait = 1000 / fps;
     int32_t unused;
     pbio_servo_get_state_user(left_servo_ptr, (int32_t*)&last_left_angle, &unused);
     pbio_servo_get_state_user(right_servo_ptr, (int32_t*)&last_right_angle, &unused);
@@ -152,6 +156,8 @@ mp_obj_t experimental_start_odometry(size_t n_args, const mp_obj_t *args) {
     odom_running = true;
     return mp_const_none;
 }
+
+
 
 mp_obj_t experimental_get_odometry(void) {
     mp_obj_t tuple[3] = { 
